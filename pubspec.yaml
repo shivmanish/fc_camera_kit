@@ -1,0 +1,71 @@
+name: fc_camera_kit
+description: >-
+  Capture, stamp, compress and scan photos with embedded who/when/where
+  metadata. Feature-first clean architecture, Cubit driven, Android and iOS.
+version: 0.1.0
+repository: https://github.com/sarvagram/fc_camera_kit
+issue_tracker: https://github.com/sarvagram/fc_camera_kit/issues
+
+# This package is deliberately Android + iOS only. It reads `dart:io`
+# and leans on native codecs, so web/desktop are out of scope.
+platforms:
+  android:
+  ios:
+
+topics:
+  - camera
+  - watermark
+  - exif
+  - image-compression
+
+environment:
+  sdk: ^3.9.2
+  flutter: ">=3.35.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_bloc: ^9.1.1
+  equatable: ^3.0.0
+
+  # Capture. `camera` is intentionally absent: capture goes through
+  # image_picker and the system camera app, and pulling `camera` in would merge
+  # CAMERA, RECORD_AUDIO and WRITE_EXTERNAL_STORAGE into every consumer's
+  # manifest for a plugin this package never calls.
+  #   camera: ^0.12.0+1
+  image_picker: ^1.2.2
+
+  # Image pipeline
+  flutter_image_compress: ^2.5.1
+  native_exif: ^0.7.0
+
+  # Runtime permissions + location context
+  # Held at 12.x deliberately. permission_handler 13.x pulls
+  # permission_handler_android 14.x, whose build.gradle.kts requires AGP 9.0.1
+  # and Kotlin 2.3.20 — it fails to even compile on AGP 8. 12.0.1 resolves to
+  # permission_handler_android 13.0.1, which targets AGP 8.
+  permission_handler: ^12.0.1
+  geolocator: ^14.0.2
+  geocoding: ^5.0.0
+
+  # Device / file / formatting utilities
+  device_info_plus: ^12.4.0
+  package_info_plus: ^9.0.1
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  cross_file: ^0.3.5+2
+  intl: ^0.20.3
+  meta: ^1.16.0
+  dartz: ^0.10.1
+  cunning_document_scanner: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.5
+
+flutter:
