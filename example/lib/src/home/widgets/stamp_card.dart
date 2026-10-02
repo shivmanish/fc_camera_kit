@@ -90,7 +90,7 @@ class _StampScansSwitch extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Stamp scans',
+          'Stamp scans & selfies',
           style: theme.textTheme.labelMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,

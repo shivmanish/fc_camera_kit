@@ -1,10 +1,4 @@
-/// One step of preparing a scanned page, in the order they run.
-enum FcScanStage {
-  stamping('Adding the stamp'),
-  compressing('Compressing'),
-  writingMetadata('Writing metadata');
+import '../../../../core/image/fc_image_pipeline.dart';
 
-  const FcScanStage(this.label);
-
-  final String label;
-}
+/// The scanner's name for the shared pipeline steps.
+typedef FcScanStage = FcImageStage;

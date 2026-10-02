@@ -5,7 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'home_cubit.dart';
 import 'home_state.dart';
 import 'widgets/access_card.dart';
+import 'widgets/action_bar.dart';
 import 'widgets/capture_card.dart';
+import 'widgets/face_card.dart';
 import 'widgets/identity_card.dart';
 import 'widgets/location_card.dart';
 import 'widgets/metadata_card.dart';
@@ -68,6 +70,20 @@ class _HomeView extends StatelessWidget {
     cubit.scanFinished(result);
   }
 
+  /// Face scan too: frame, blink, shutter. The kit checks liveness, prepares
+  /// the selfie and hands it back.
+  Future<void> _scanFace(BuildContext context) async {
+    final cubit = context.read<HomeCubit>();
+    cubit.captureStarted();
+
+    final result = await FcCameraKit.instance.scanFace(
+      context,
+      stamp: cubit.state.stampScans,
+    );
+
+    cubit.faceScanFinished(result);
+  }
+
   static void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -90,27 +106,15 @@ class _HomeView extends StatelessWidget {
           letterSpacing: -0.3,
         ),
       ),
-      // Disabled while a capture runs, so a double tap cannot start two.
-      floatingActionButton: BlocBuilder<HomeCubit, HomeState>(
+      // Disabled while a flow runs, so a double tap cannot start two.
+      bottomNavigationBar: BlocBuilder<HomeCubit, HomeState>(
         buildWhen: (previous, current) =>
             previous.capturing != current.capturing,
-        builder: (context, state) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FloatingActionButton.extended(
-              heroTag: 'scan',
-              onPressed: state.capturing ? null : () => _scan(context),
-              icon: const Icon(Icons.document_scanner_rounded),
-              label: const Text('Scan'),
-            ),
-            const SizedBox(width: 12),
-            FloatingActionButton.extended(
-              heroTag: 'capture',
-              onPressed: state.capturing ? null : () => _capture(context),
-              icon: const Icon(Icons.photo_camera_rounded),
-              label: const Text('Click image'),
-            ),
-          ],
+        builder: (context, state) => ActionBar(
+          enabled: !state.capturing,
+          onCapture: () => _capture(context),
+          onScan: () => _scan(context),
+          onFace: () => _scanFace(context),
         ),
       ),
       body: MultiBlocListener(
@@ -143,6 +147,7 @@ class _HomeView extends StatelessWidget {
               SizedBox(height: 24),
               CaptureCard(),
               ScanCard(),
+              FaceCard(),
               StampCard(),
               SizedBox(height: 24),
               AccessCard(),

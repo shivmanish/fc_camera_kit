@@ -11,6 +11,7 @@ export 'package:dartz/dartz.dart' show Either, Left, Right;
 // Config — the FcCameraKit singleton, FcUser and package defaults.
 export 'src/core/config/fc_camera_kit.dart';
 export 'src/core/config/fc_cubit.dart';
+export 'src/core/config/fc_face_scan_options.dart';
 export 'src/core/config/fc_scan_options.dart';
 // Errors — thrown by data sources, carried in Cubit state.
 export 'src/core/error/fc_camera_exception.dart';
@@ -19,10 +20,15 @@ export 'src/core/error/fc_camera_failure.dart';
 export 'src/core/image/compressor/fc_compression_policy.dart';
 export 'src/core/image/compressor/fc_image_compressor.dart';
 export 'src/core/image/fc_bmp_encoder.dart';
+// Shared pipeline — stamp → compress → EXIF, used by every feature.
+export 'src/core/image/fc_image_pipeline.dart';
 // Image metadata — the who / when / where attached to a capture.
 export 'src/core/image/metadata/fc_exif_writer.dart';
 export 'src/core/image/metadata/fc_geo_location.dart';
 export 'src/core/image/metadata/fc_photo_metadata.dart';
+// Stamp — draws who / when / where onto the pixels.
+export 'src/core/image/stamp/fc_stamp_renderer.dart';
+export 'src/core/image/stamp/fc_stamp_style.dart';
 // Permissions — gateways, one per permission.
 export 'src/core/permissions/fc_camera_permission.dart';
 export 'src/core/permissions/fc_location_permission.dart';
@@ -33,8 +39,6 @@ export 'src/core/permissions/fc_permissions.dart';
 export 'src/core/ui/fc_ui.dart';
 // Result plumbing.
 export 'src/core/utils/fc_result.dart';
-
-// Feature: permissions — the capture gate, its cubit and its surfaces.
 // Feature: capture — acquiring a photo from camera or gallery.
 export 'src/features/capture/cubit/fc_capture_cubit.dart';
 export 'src/features/capture/cubit/fc_capture_state.dart';
@@ -45,6 +49,12 @@ export 'src/features/capture/fc_capture_source.dart';
 export 'src/features/capture/fc_image_source.dart';
 export 'src/features/capture/widgets/fc_processing_screen.dart';
 export 'src/features/capture/widgets/fc_source_sheet.dart';
+// Feature: face scan — framed selfie with blink liveness.
+export 'src/features/face_scan/domain/entities/fc_face_result.dart';
+export 'src/features/face_scan/domain/entities/fc_face_verdict.dart';
+export 'src/features/face_scan/fc_camera_kit_face_scan.dart';
+export 'src/features/face_scan/presentation/pages/fc_face_scan_page.dart';
+// Feature: permissions — the capture gate, its cubit and its surfaces.
 export 'src/features/permissions/presentation/cubit/fc_permission_cubit.dart';
 export 'src/features/permissions/presentation/cubit/fc_permission_state.dart';
 export 'src/features/permissions/presentation/fc_permission_gate.dart';
@@ -62,8 +72,6 @@ export 'src/features/scanner/presentation/pages/fc_scanner_page.dart';
 // Feature: stamping — draws who / when / where onto the pixels.
 export 'src/features/stamping/cubit/fc_stamp_cubit.dart';
 export 'src/features/stamping/cubit/fc_stamp_state.dart';
-export 'src/features/stamping/fc_stamp_renderer.dart';
-export 'src/features/stamping/fc_stamp_style.dart';
 
 // Still to land, in phase order:
 //   P4  core/image        ImageCompressor, CompressionPolicy, exif read/write

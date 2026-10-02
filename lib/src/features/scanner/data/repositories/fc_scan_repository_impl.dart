@@ -1,18 +1,13 @@
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-
 import 'package:cross_file/cross_file.dart';
 
 import '../../../../core/config/fc_scan_options.dart';
 import '../../../../core/error/fc_camera_exception.dart';
 import '../../../../core/error/fc_camera_failure.dart';
 import '../../../../core/error/fc_exception_mapper.dart';
-import '../../../../core/image/compressor/fc_image_compressor.dart';
+import '../../../../core/image/fc_image_pipeline.dart';
 import '../../../../core/image/fc_image_store.dart';
-import '../../../../core/image/metadata/fc_exif_writer.dart';
 import '../../../../core/image/metadata/fc_photo_metadata.dart';
 import '../../../../core/utils/fc_result.dart';
-import '../../../stamping/fc_stamp_renderer.dart';
 import '../../domain/entities/fc_scan_result.dart';
 import '../../domain/entities/fc_scan_stage.dart';
 import '../../domain/entities/fc_scan_stamp.dart';
@@ -50,61 +45,30 @@ final class FcScanRepositoryImpl implements FcScanRepository {
     FcScanStamp? stamp,
     void Function(FcScanStage stage)? onStage,
   }) async {
-    String? savedPath;
     try {
-      var bytes = await _read(raw);
-      int width;
-      int height;
-
-      if (stamp != null && metadata != null) {
-        onStage?.call(FcScanStage.stamping);
-        final stamped = await FcStampRenderer.render(
-          source: bytes,
-          metadata: metadata,
-          placement: stamp.placement,
-          dateFormat: stamp.dateFormat,
-          includeDevice: stamp.includeDevice,
-          style: stamp.style,
-        );
-        (bytes, width, height) = (stamped.bytes, stamped.width, stamped.height);
-      } else {
-        (width, height) = await _dimensionsOf(bytes);
-      }
-
-      onStage?.call(FcScanStage.compressing);
-      final outcome = await FcImageCompressor.toBudget(
-        bytes: bytes,
+      final image = await FcImagePipeline.run(
+        raw,
         maxBytes: maxBytes,
-        width: width,
-        height: height,
+        metadata: metadata,
+        writeMetadata: writeMetadata,
+        stamp: stamp,
+        onStage: onStage,
       );
-
-      final file = await FcImageStore.save(outcome.data);
-      savedPath = file.path;
-
-      final embed = writeMetadata && metadata != null;
-      if (embed) {
-        onStage?.call(FcScanStage.writingMetadata);
-        // After compression: a JPEG re-encode drops EXIF.
-        await FcExifWriter.write(file.path, metadata);
-      }
-
+      final embedded = writeMetadata && metadata != null;
       return fcSuccess(
         FcScannedPage(
-          file: XFile(file.path),
-          sizeBytes: outcome.sizeBytes,
-          width: outcome.width,
-          height: outcome.height,
-          wasCompressed: outcome.wasCompressed,
-          quality: outcome.quality,
-          metadata: embed || stamp != null ? metadata : null,
+          file: image.file,
+          sizeBytes: image.sizeBytes,
+          width: image.width,
+          height: image.height,
+          wasCompressed: image.wasCompressed,
+          quality: image.quality,
+          metadata: embedded || image.stamped ? metadata : null,
         ),
       );
     } on FcCameraException catch (error) {
-      if (savedPath != null) await FcImageStore.deleteQuietly(savedPath);
       return fcFailure(error.toFailure());
     } catch (error) {
-      if (savedPath != null) await FcImageStore.deleteQuietly(savedPath);
       return fcFailure(UnknownFailure('Processing failed: $error'));
     }
   }
@@ -119,36 +83,4 @@ final class FcScanRepositoryImpl implements FcScanRepository {
 
   @override
   Future<void> clearCache() => _engine.clearCache();
-
-  static Future<Uint8List> _read(XFile raw) async {
-    try {
-      return await raw.readAsBytes();
-    } catch (error, stackTrace) {
-      throw StorageException(
-        'Could not read the scanned page.',
-        cause: error,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  /// Reads the header only; no full decode of the page.
-  static Future<(int, int)> _dimensionsOf(Uint8List bytes) async {
-    ui.ImmutableBuffer? buffer;
-    ui.ImageDescriptor? descriptor;
-    try {
-      buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-      descriptor = await ui.ImageDescriptor.encoded(buffer);
-      return (descriptor.width, descriptor.height);
-    } catch (error, stackTrace) {
-      throw ImageProcessingException(
-        'The scanned page is not a readable image.',
-        cause: error,
-        stackTrace: stackTrace,
-      );
-    } finally {
-      descriptor?.dispose();
-      buffer?.dispose();
-    }
-  }
 }

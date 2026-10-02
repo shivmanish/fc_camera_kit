@@ -13,6 +13,7 @@ class HomeState extends Equatable {
     this.locationError,
     this.captures = const [],
     this.scans = const [],
+    this.faces = const [],
     this.capturing = false,
     this.captureError,
     this.placement = StampPlacement.overlay,
@@ -39,6 +40,9 @@ class HomeState extends Equatable {
   /// Every scanned page this session, newest first.
   final List<FcScannedPage> scans;
 
+  /// Every face scan this session, newest first.
+  final List<FcFaceResult> faces;
+
   /// The package is running a capture or a scan.
   final bool capturing;
 
@@ -49,7 +53,8 @@ class HomeState extends Equatable {
   /// kit rather than keeping a second source of truth.
   final StampPlacement placement;
 
-  /// Passed to each `scan()` call, so both modes can be tried side by side.
+  /// Passed to each `scan()` and `scanFace()` call, so both modes can be
+  /// tried side by side.
   final bool stampScans;
 
   bool get ready =>
@@ -71,6 +76,7 @@ class HomeState extends Equatable {
     bool clearLocationError = false,
     List<FcCaptureResult>? captures,
     List<FcScannedPage>? scans,
+    List<FcFaceResult>? faces,
     bool? capturing,
     FcCameraFailure? captureError,
     bool clearCaptureError = false,
@@ -89,6 +95,7 @@ class HomeState extends Equatable {
         : (locationError ?? this.locationError),
     captures: captures ?? this.captures,
     scans: scans ?? this.scans,
+    faces: faces ?? this.faces,
     capturing: capturing ?? this.capturing,
     captureError: clearCaptureError
         ? null
@@ -109,6 +116,7 @@ class HomeState extends Equatable {
     locationError,
     captures,
     scans,
+    faces,
     capturing,
     captureError,
     placement,

@@ -9,9 +9,9 @@ import '../../../core/image/compressor/fc_image_compressor.dart';
 import '../../../core/image/fc_image_store.dart';
 import '../../../core/image/metadata/fc_exif_writer.dart';
 import '../../../core/image/metadata/fc_photo_metadata.dart';
+import '../../../core/image/stamp/fc_stamp_renderer.dart';
+import '../../../core/image/stamp/fc_stamp_style.dart';
 import '../../capture/fc_capture_result.dart';
-import '../fc_stamp_renderer.dart';
-import '../fc_stamp_style.dart';
 import 'fc_stamp_state.dart';
 
 /// Runs the whole processing chain: stamp, compress, embed metadata.

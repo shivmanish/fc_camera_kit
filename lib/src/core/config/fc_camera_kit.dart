@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../error/fc_camera_exception.dart';
 import '../image/metadata/fc_geo_location.dart';
 import '../image/metadata/fc_photo_metadata.dart';
+import 'fc_face_scan_options.dart';
 import 'fc_scan_options.dart';
 
 /// Who is taking the photo. A record, so value equality comes for free.
@@ -47,6 +48,7 @@ final class FcCameraKit {
   String _dateFormat = 'dd MMM yyyy, hh:mm a';
   bool _requireLocation = false;
   FcScanOptions _scanOptions = const FcScanOptions();
+  FcFaceScanOptions _faceScanOptions = const FcFaceScanOptions();
 
   bool get isInitialized => _initialized;
 
@@ -84,6 +86,9 @@ final class FcCameraKit {
   /// Defaults for `scan()`; per-call arguments override them.
   FcScanOptions get scanOptions => _checked(_scanOptions);
 
+  /// Defaults for `scanFace()`; per-call arguments override them.
+  FcFaceScanOptions get faceScanOptions => _checked(_faceScanOptions);
+
   /// Sets up the kit. Safe to call again to change settings.
   ///
   /// Async so later phases can warm up device info without a breaking change.
@@ -95,12 +100,16 @@ final class FcCameraKit {
     bool requireLocation = false,
     bool includeDeviceInStamp = false,
     FcScanOptions scan = const FcScanOptions(),
+    FcFaceScanOptions faceScan = const FcFaceScanOptions(),
   }) async {
     if (maxBytes <= 0) {
       throw const ConfigurationException('maxBytes must be positive');
     }
     if (scan.maxPages <= 0) {
       throw const ConfigurationException('scan.maxPages must be positive');
+    }
+    if (faceScan.blinks <= 0) {
+      throw const ConfigurationException('faceScan.blinks must be positive');
     }
     _user = user;
     _includeDeviceInStamp = includeDeviceInStamp;
@@ -117,6 +126,7 @@ final class FcCameraKit {
     _dateFormat = dateFormat;
     _requireLocation = requireLocation;
     _scanOptions = scan;
+    _faceScanOptions = faceScan;
     _initialized = true;
   }
 

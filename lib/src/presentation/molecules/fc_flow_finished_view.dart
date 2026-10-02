@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/ui/fc_ui.dart';
+import '../../core/ui/fc_ui.dart';
 
-/// Shown only when the scanner page is the first route and can't close.
-class FcScanFinishedView extends StatelessWidget {
-  const FcScanFinishedView({required this.completed, super.key});
+/// Shown only when a flow page is the first route and can't close.
+class FcFlowFinishedView extends StatelessWidget {
+  const FcFlowFinishedView({
+    required this.completed,
+    this.completedLabel = 'Complete',
+    super.key,
+  });
 
   final bool completed;
+  final String completedLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +27,7 @@ class FcScanFinishedView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            completed ? 'Scan complete' : 'Scan closed',
+            completed ? completedLabel : 'Closed',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),

@@ -5,10 +5,10 @@ import 'package:flutter/painting.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:meta/meta.dart';
 
-import '../../core/config/fc_camera_kit.dart';
-import '../../core/error/fc_camera_exception.dart';
-import '../../core/image/fc_bmp_encoder.dart';
-import '../../core/image/metadata/fc_photo_metadata.dart';
+import '../../config/fc_camera_kit.dart';
+import '../../error/fc_camera_exception.dart';
+import '../fc_bmp_encoder.dart';
+import '../metadata/fc_photo_metadata.dart';
 import 'fc_stamp_style.dart';
 
 /// Burns the who/when/where lines into the pixels.

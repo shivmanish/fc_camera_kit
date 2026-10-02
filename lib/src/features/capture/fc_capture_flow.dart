@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/config/fc_camera_kit.dart';
 import '../../core/error/fc_camera_failure.dart';
+import '../../core/image/stamp/fc_stamp_style.dart';
 import '../../core/navigation/fc_navigator.dart';
 import '../../core/permissions/fc_permissions.dart';
 import '../../core/utils/fc_result.dart';
 import '../permissions/presentation/fc_permission_gate.dart';
-import '../stamping/fc_stamp_style.dart';
 import 'fc_capture_requirements.dart';
 import 'fc_capture_result.dart';
 import 'fc_capture_source.dart';

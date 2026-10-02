@@ -108,6 +108,21 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
     safeEmit(state.copyWith(capturing: false));
   }
 
+  /// Records whatever `FcCameraKit.scanFace` handed back.
+  void faceScanFinished(FcResult<FcFaceResult> result) {
+    result.when(
+      success: (face) =>
+          safeEmit(state.copyWith(faces: [face, ...state.faces])),
+      failure: (failure) => safeEmit(
+        failure is CancelledFailure
+            ? state
+            : state.copyWith(captureError: failure),
+      ),
+    );
+
+    safeEmit(state.copyWith(capturing: false));
+  }
+
   void dismissCaptureError() =>
       safeEmit(state.copyWith(clearCaptureError: true));
 
