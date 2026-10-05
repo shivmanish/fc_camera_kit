@@ -6,6 +6,7 @@ import '../../../../../core/config/fc_camera_kit.dart';
 import '../../../../../core/config/fc_cubit.dart';
 import '../../../../../core/config/fc_scan_options.dart';
 import '../../../../../core/error/fc_camera_failure.dart';
+import '../../../../../core/image/metadata/fc_geo_location.dart';
 import '../../../../../core/image/metadata/fc_photo_metadata.dart';
 import '../../../../../core/image/stamp/fc_stamp_style.dart';
 import '../../../../../core/navigation/fc_flow_reporter.dart';
@@ -62,6 +63,7 @@ class FcScannerScreenCubit
   late bool _needsLocation;
   FcScanProcessing? _progress;
   bool _starting = false;
+  Future<FcResult<FcGeoLocation>>? _location;
 
   /// After the first frame, so this route is underneath when the platform
   /// scanner closes, and the screen is listening for permission requests.
@@ -159,6 +161,8 @@ class FcScannerScreenCubit
   Future<void> _run() async {
     final kit = FcCameraKit.instance;
     _progress = null;
+    // Fixed while the user scans, so the pages don't wait on GPS afterwards.
+    _location = _needsLocation ? _locate() : null;
     safeEmit(FcScannerActive(_scan.state));
     await _scan.start(
       options: _options,
@@ -181,15 +185,24 @@ class FcScannerScreenCubit
     final kit = FcCameraKit.instance;
     if (!_needsLocation) return fcSuccess(kit.buildMetadata());
 
-    // Permission was already cleared; never prompt twice.
-    final location = await FcLocationPermission.instance.getCurrentLocation(
-      resolveAddress: true,
-      requestIfNeeded: false,
-    );
+    final location = await (_location ?? _locate());
     return location.fold(
       fcFailure<FcPhotoMetadata?>,
       (fix) => fcSuccess(kit.buildMetadata(location: fix)),
     );
+  }
+
+  /// Never throws: nobody awaits it when the user cancels the scan.
+  Future<FcResult<FcGeoLocation>> _locate() async {
+    try {
+      // Permission was already cleared; never prompt twice.
+      return await FcLocationPermission.instance.getCurrentLocation(
+        resolveAddress: true,
+        requestIfNeeded: false,
+      );
+    } catch (error) {
+      return fcFailure(LocationFailure('Location failed: $error'));
+    }
   }
 
   void _onScan(FcScanState scan) {
