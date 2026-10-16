@@ -7,8 +7,7 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'section_card.dart';
 
-/// Exactly what the Phase 6 stamper will receive — the point of the package,
-/// visible before any pixels exist.
+/// Preview of the metadata the stamper receives, before any capture.
 class MetadataCard extends StatelessWidget {
   const MetadataCard({super.key});
 

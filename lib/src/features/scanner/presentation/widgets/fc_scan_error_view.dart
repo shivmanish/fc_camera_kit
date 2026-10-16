@@ -61,7 +61,7 @@ class FcScanErrorView extends StatelessWidget {
                 ? FcPermissions.instance.openAppSettings
                 : onRetry,
           ),
-          // Back from Settings with access granted, the user continues here.
+          // Lets the user continue after granting access in Settings.
           if (_needsSettings) ...[
             const SizedBox(height: 8),
             SizedBox(

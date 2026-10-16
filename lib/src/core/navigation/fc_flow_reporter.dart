@@ -4,25 +4,20 @@ import 'package:flutter/foundation.dart';
 
 import '../error/fc_camera_failure.dart';
 
-/// Reports a flow's single outcome to the host's callbacks.
-///
-/// Exactly one callback fires, however the flow ends. A screen cubit owns one
-/// and calls [dispose] from its `close()`, which covers the page being torn
-/// down from outside (e.g. `pushAndRemoveUntil`).
+/// Fires exactly one host callback per flow, even on external teardown.
 final class FcFlowReporter<T> {
   FcFlowReporter({this.onCompleted, this.onCancelled, this.onFailed});
 
   final ValueChanged<T>? onCompleted;
   final VoidCallback? onCancelled;
 
-  /// Without it, a failure is reported as a cancel.
+  /// When null, failures are reported as cancels.
   final ValueChanged<FcCameraFailure>? onFailed;
 
   bool _reported = false;
 
   bool get reported => _reported;
 
-  /// `true` when a failure would be handled by the host rather than shown.
   bool get handlesFailures => onFailed != null;
 
   void completed(T value) => _once(() => onCompleted?.call(value));
@@ -36,8 +31,7 @@ final class FcFlowReporter<T> {
     );
   }
 
-  /// Reports a cancel if nothing was reported, deferred so host code never
-  /// runs while the widget tree is being torn down.
+  // Deferred so host code never runs mid tree teardown.
   void dispose() {
     if (_reported) return;
     _reported = true;

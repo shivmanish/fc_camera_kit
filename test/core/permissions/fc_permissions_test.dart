@@ -16,9 +16,7 @@ void main() {
 
       expect(mapped, Permission.locationWhenInUse);
 
-      // Permission.location can escalate to Always on iOS, and the Info.plist
-      // carries only a When-In-Use description. Requesting Always without one
-      // is an App Store rejection, so neither may ever appear here.
+      // iOS: requesting Always without its Info.plist key means rejection.
       expect(mapped, isNot(Permission.location));
       expect(mapped, isNot(Permission.locationAlways));
     });

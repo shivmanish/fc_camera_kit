@@ -1,16 +1,14 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-/// The shapes a crop can be held to.
 enum FcCropAspect {
   free,
 
-  /// The photo's own shape.
+  /// Matches the photo's own aspect.
   original,
   square,
 }
 
-/// Where a drag on the crop frame started.
 enum FcCropHandle {
   topLeft,
   top,
@@ -20,26 +18,20 @@ enum FcCropHandle {
   bottom,
   bottomLeft,
   left,
-
-  /// Inside the frame: the drag moves it.
   inside,
 }
 
-/// Crop maths in fractions of the turned photo, free of any widget.
+/// Crop maths in fractions of the turned photo.
 abstract final class FcCropGeometry {
-  /// The smallest side: still easy to grab, small enough for a detail.
   static const double minSide = 0.1;
 
-  /// [aspect] as width ÷ height in fractions of a photo shaped [turned];
-  /// `null` when free.
+  // Ratio is in photo fractions, so "original" is 1, not the pixel ratio.
   static double? ratioOf(FcCropAspect aspect, Size turned) => switch (aspect) {
     FcCropAspect.free => null,
-    // The photo's own shape is the whole frame: as wide as it is tall.
     FcCropAspect.original => 1,
     FcCropAspect.square => turned.height / turned.width,
   };
 
-  /// The largest crop of [ratio], centred, as when a shape is first chosen.
   static Rect fit(double ratio) {
     var width = 1.0;
     var height = 1 / ratio;
@@ -50,8 +42,6 @@ abstract final class FcCropGeometry {
     return Rect.fromLTWH((1 - width) / 2, (1 - height) / 2, width, height);
   }
 
-  /// [crop] after a drag of [delta] from [handle]: kept inside the photo, no
-  /// smaller than [minSide], and held to [ratio] when there is one.
   static Rect drag(
     Rect crop,
     FcCropHandle handle,
@@ -92,7 +82,7 @@ abstract final class FcCropGeometry {
     return Rect.fromLTRB(left, top, right, bottom);
   }
 
-  /// A held shape only resizes from a corner, pivoting on the opposite one.
+  // Held ratios resize from corners only, pivoting on the opposite corner.
   static Rect _resizeHeld(
     Rect crop,
     FcCropHandle handle,
@@ -108,11 +98,10 @@ abstract final class FcCropGeometry {
     };
     if (anchor == null) return crop;
 
-    // Which way growing points, per axis.
     final sx = _movesLeft(handle) ? -1.0 : 1.0;
     final sy = _movesTop(handle) ? -1.0 : 1.0;
 
-    // Follow whichever axis the finger moved further.
+    // Follow the axis the finger moved further.
     final byX = crop.width + sx * delta.dx;
     final byY = (crop.height + sy * delta.dy) * ratio;
     var width = (byX - crop.width).abs() >= (byY - crop.width).abs()

@@ -4,10 +4,7 @@ import '../../../core/navigation/fc_navigator.dart';
 import '../../../core/ui/fc_ui.dart';
 import '../fc_capture_source.dart';
 
-/// Asks where the photo should come from.
-///
-/// Shown only when the caller does not name a source. Dismissible, unlike the
-/// permission sheet — backing out here is a normal choice, not a blocker.
+/// Source picker; dismissible, since backing out here is a normal choice.
 Future<FcCaptureSource?> showSourceSheet(BuildContext context) {
   return FcNavigator.showSheet<FcCaptureSource>(
     context,
@@ -30,7 +27,7 @@ class _SourceSheet extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      // The close button overlays the corner so it adds no vertical space.
+      // Close button overlays the corner to add no height.
       child: Stack(
         children: [
           Column(

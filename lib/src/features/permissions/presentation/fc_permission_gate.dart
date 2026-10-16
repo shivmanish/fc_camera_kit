@@ -7,19 +7,9 @@ import '../../../core/ui/fc_ui.dart';
 import 'widgets/fc_location_service_dialog.dart';
 import 'widgets/fc_permission_sheet.dart';
 
-/// The one call to make before opening the camera.
-///
-/// ```dart
-/// if (!await FcPermissionGate.ensure(context)) return;
-/// // safe to capture
-/// ```
-///
-/// Runs the full flow: check, explain, request, recover from a permanent
-/// denial, then confirm location services are on. Returns `true` only when
-/// every requirement is satisfied.
+/// Permission and location-service check to run before opening the camera.
 abstract final class FcPermissionGate {
-  /// Nothing is shown when everything is already granted, so this is cheap to
-  /// call on every capture.
+  /// Shows nothing when all is granted, so it is cheap per capture.
   static Future<bool> ensure(
     BuildContext context, {
     Set<FcPermissionType> required = FcPermissions.captureDefaults,
@@ -52,8 +42,7 @@ abstract final class FcPermissionGate {
     return _ensureLocationService(context, allowCancel: allowCancel);
   }
 
-  /// Permission granted but the device toggle is off — a different fix, so a
-  /// different surface.
+  /// Granted but with the device toggle off needs its own prompt.
   static Future<bool> _ensureLocationService(
     BuildContext context, {
     required bool allowCancel,

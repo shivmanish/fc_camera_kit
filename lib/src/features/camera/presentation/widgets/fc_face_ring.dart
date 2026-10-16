@@ -5,26 +5,22 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/fc_face_frame_geometry.dart';
 import '../../domain/entities/fc_face_frame_status.dart';
 
-/// Fixed on purpose: these are status signals over a camera image, and a host
-/// theme must never turn "not ready" green.
+/// Fixed status colours; a host theme must never recolour them.
 const _red = Color(0xFFEF4444);
 const _green = Color(0xFF22C55E);
 
-/// The ring around the face circle: red, green, a progress arc, or a tick.
 class FcFaceRing extends StatefulWidget {
   const FcFaceRing({required this.tone, this.countdown, super.key});
 
   final FcFaceFrameTone tone;
 
-  /// When set while ready, the green fills over it: the photo takes itself
-  /// when the ring closes.
+  /// Ring fills over this; the photo auto-captures when it closes.
   final Duration? countdown;
 
   @override
   State<FcFaceRing> createState() => _FcFaceRingState();
 }
 
-/// Stateful only for the spinner controller, which must be disposed.
 class _FcFaceRingState extends State<FcFaceRing>
     with SingleTickerProviderStateMixin {
   late final AnimationController _spin = AnimationController(
@@ -73,8 +69,7 @@ class _FcFaceRingState extends State<FcFaceRing>
         tween: ColorTween(end: _color),
         duration: const Duration(milliseconds: 200),
         builder: (context, color, _) => TweenAnimationBuilder<double>(
-          // Green sweeps in, so the change reads as "locked on"; with
-          // auto-capture it fills over the countdown instead.
+          // Green sweeps in; with auto-capture it spans the countdown.
           key: ValueKey(tone == FcFaceFrameTone.ready),
           tween: Tween(begin: tone == FcFaceFrameTone.ready ? 0 : 1, end: 1),
           duration: widget.countdown ?? const Duration(milliseconds: 350),
@@ -100,10 +95,9 @@ class _RingPainter extends CustomPainter {
 
   final Color color;
 
-  /// 0–1 of the full circle drawn in [color].
+  /// Fraction of the circle, 0–1.
   final double sweep;
 
-  /// When set, a rotating progress arc is drawn instead.
   final Animation<double>? spin;
 
   @override
@@ -137,7 +131,6 @@ class _RingPainter extends CustomPainter {
       oldDelegate.spin != spin;
 }
 
-/// Tick or cross on the bottom of the ring once a flow has finished.
 class _Badge extends StatelessWidget {
   const _Badge({required this.tone});
 

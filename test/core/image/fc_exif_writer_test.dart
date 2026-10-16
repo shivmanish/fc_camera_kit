@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final capturedAt = DateTime(2026, 9, 17, 14, 5, 9);
   const app = FcApp(
-    name: 'SarvaSarathi COS',
+    name: 'FC Camera Kit Example',
     version: '2.17.6',
     environment: FcEnvironment.production,
   );
@@ -33,8 +33,7 @@ void main() {
         ),
       );
 
-      // native_exif casts blindly to String on Android, except GPS lat/long
-      // which it parses as a double. Anything else is a runtime crash.
+      // native_exif casts values to String on Android, GPS lat/long to double.
       for (final entry in attributes.entries) {
         final expectDouble =
             entry.key == 'GPSLatitude' || entry.key == 'GPSLongitude';
@@ -61,7 +60,7 @@ void main() {
 
       expect(attributes['Orientation'], 1);
       expect(attributes['GPSHPositioningError'], 12.5);
-      // Only Android's string-to-bytes path can express the version bytes.
+      // Version bytes are only expressible via Android's string-to-bytes path.
       expect(attributes.containsKey('GPSVersionID'), isFalse);
     });
 
@@ -70,7 +69,7 @@ void main() {
         FcPhotoMetadata(capturedAt: capturedAt, app: app),
       );
 
-      expect(attributes['Software'], 'SarvaSarathi COS 2.17.6');
+      expect(attributes['Software'], 'FC Camera Kit Example 2.17.6');
     });
 
     test('calls out a build outside production in Software', () {
@@ -78,14 +77,14 @@ void main() {
         FcPhotoMetadata(
           capturedAt: capturedAt,
           app: const FcApp(
-            name: 'SarvaSarathi COS',
+            name: 'FC Camera Kit Example',
             version: '2.17.6',
             environment: FcEnvironment.uat,
           ),
         ),
       );
 
-      expect(attributes['Software'], 'SarvaSarathi COS 2.17.6 (UAT)');
+      expect(attributes['Software'], 'FC Camera Kit Example 2.17.6 (UAT)');
     });
 
     test('writes the photo id to ImageUniqueID', () {
@@ -146,7 +145,7 @@ void main() {
     test('names the kit in UserComment, behind the charset header', () {
       final meta = FcPhotoMetadata(capturedAt: capturedAt);
 
-      // Android's ExifInterface writes no header of its own; iOS does.
+      // iOS writes its own header; Android's ExifInterface does not.
       expect(
         FcExifWriter.attributesFor(meta)['UserComment'],
         'ASCII\x00\x00\x00fc_camera_kit',
@@ -162,7 +161,7 @@ void main() {
         FcPhotoMetadata(capturedAt: capturedAt),
       );
 
-      // Left out, ExifInterface writes 0, which is not a valid orientation.
+      // Omitted, ExifInterface writes 0, an invalid orientation.
       expect(attributes['Orientation'], '1');
     });
 
@@ -226,8 +225,7 @@ void main() {
         ),
       );
 
-      // The sign carries the hemisphere; both platforms write the ref tags
-      // from it, so duplicating them here was redundant.
+      // Hemisphere comes from the sign; both platforms derive the ref tags.
       expect(south['GPSLatitude'], -33.86);
       expect(south['GPSLongitude'], -70.66);
       expect(south.containsKey('GPSLatitudeRef'), isFalse);
@@ -441,8 +439,7 @@ void main() {
     });
 
     test('bounds the attempts — this is the cost that matters', () {
-      // Every attempt ships the whole frame across the platform channel, so
-      // the ladder must stay short. A binary search over 70..95 took six.
+      // Each try sends the full frame over the channel; keep attempts few.
       expect(policy.qualitySteps.length, lessThanOrEqualTo(5));
     });
 

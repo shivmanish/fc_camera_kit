@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../presentation/molecules/fc_step_list.dart';
 import '../../domain/entities/fc_scan_stage.dart';
 
-/// One continuous surface from the scanner closing to the result returning.
-///
-/// Only the page image cross-fades and the text and steps update in place;
-/// the spinner never restarts, so the next page never reads as a new screen.
+/// Progress from scanner close to result; the spinner never restarts.
 class FcScanPreparingView extends StatelessWidget {
   const FcScanPreparingView({
     this.imagePath,
@@ -19,7 +16,7 @@ class FcScanPreparingView extends StatelessWidget {
     super.key,
   });
 
-  /// `null` while the platform scanner is still open.
+  /// `null` while the platform scanner is open.
   final String? imagePath;
   final int? page;
   final int? total;
@@ -35,8 +32,7 @@ class FcScanPreparingView extends StatelessWidget {
     final page = this.page;
     final total = this.total;
 
-    // Always dark: matches the scanner it replaces and keeps white text
-    // readable on any page.
+    // Always dark to match the scanner and keep white text readable.
     return ColoredBox(
       color: Colors.black,
       child: Stack(
@@ -57,8 +53,7 @@ class FcScanPreparingView extends StatelessWidget {
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                // The whole group is centred; when the details arrive it grows
-                // smoothly instead of the spinner jumping.
+                // Centred, so it grows smoothly when details arrive.
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -108,7 +103,7 @@ class _PageImage extends StatelessWidget {
     return Image.file(
       File(path),
       fit: BoxFit.contain,
-      // Decoded at screen size, not the page's full resolution.
+      // Decode at display size, not full resolution.
       cacheWidth: (width * ratio).round(),
       errorBuilder: (_, _, _) => const SizedBox.shrink(),
     );
@@ -162,7 +157,7 @@ class _Details extends StatelessWidget {
             const SizedBox(height: 24),
             FcStepList(
               labels: [for (final step in stages) step.label],
-              // Before the first stage lands, show the first as running.
+              // Show the first stage running until one is reported.
               current: stage == null ? 0 : stages.indexOf(stage),
             ),
           ],

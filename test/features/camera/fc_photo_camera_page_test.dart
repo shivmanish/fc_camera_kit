@@ -37,20 +37,20 @@ void main() {
     );
   }
 
-  // A 1x1 PNG, so the review has real pixels without touching the disk.
+  // 1x1 PNG gives the review real pixels without disk access.
   final photoImage = MemoryImage(
     base64Decode(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
     ),
   );
 
-  /// Opens the camera the way the capture flow does.
+  /// Opens the camera as the capture flow would.
   Future<FcReviewedPhoto?> open() => FcNavigator.push<FcReviewedPhoto>(
     navigatorKey.currentContext!,
     (_) => FcPhotoCameraPage(camera: camera, imageFor: (_) => photoImage),
   );
 
-  // Spinners never settle, so advance time in fixed steps instead.
+  // Spinners never settle; pump fixed steps instead.
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
@@ -83,7 +83,7 @@ void main() {
 
       await tester.tap(shutter);
       await settle(tester);
-      // Image decoding is real async work that fake time can't advance.
+      // Image decoding is real async work; fake time cannot advance it.
       await tester.runAsync(
         () => precacheImage(photoImage, navigatorKey.currentContext!),
       );

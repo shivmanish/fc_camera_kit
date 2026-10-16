@@ -93,8 +93,7 @@ void main() {
       final source = await fileOf(await solidPng(60, 40));
       final stages = <FcImageStage>[];
 
-      // No compressor plugin in tests: the run stops at compression, after
-      // the stamp has been rendered and both stages reported.
+      // No compressor plugin here: stops at compression, after stamping.
       await expectLater(
         FcImagePipeline.run(
           source,

@@ -15,7 +15,6 @@ final class FcCameraStarting extends FcCameraState {
   const FcCameraStarting();
 }
 
-/// Preview is live.
 final class FcCameraReady extends FcCameraState {
   const FcCameraReady({
     required this.sensorAspect,
@@ -25,17 +24,15 @@ final class FcCameraReady extends FcCameraState {
     this.capturing = false,
   });
 
-  /// Width ÷ height of the sensor's frames (landscape, so above 1).
+  /// Landscape sensor ratio, so above 1.
   final double sensorAspect;
   final FcCameraLens lens;
 
-  /// The device has a camera on the other side too.
   final bool canSwitchLens;
 
-  /// `null` when this lens has no flash to offer.
+  /// `null` when this lens has no flash.
   final FcFlashMode? flash;
 
-  /// A photo is being taken; the shutter has to wait.
   final bool capturing;
 
   /// [flash] is a getter so it can set `null`.
@@ -58,7 +55,6 @@ final class FcCameraReady extends FcCameraState {
   ];
 }
 
-/// The app is in the background; the camera is released until it returns.
 final class FcCameraPaused extends FcCameraState {
   const FcCameraPaused();
 }

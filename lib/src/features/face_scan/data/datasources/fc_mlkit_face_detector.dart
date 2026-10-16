@@ -8,8 +8,7 @@ import '../../domain/entities/fc_face_observation.dart';
 import '../../domain/repositories/fc_face_detector.dart';
 import '../models/fc_face_observation_model.dart';
 
-/// On-device face detection with ML Kit, tuned for speed: only eye-open
-/// classification and tracking, no landmarks or contours.
+/// ML Kit detector limited to eye classification and tracking, for speed.
 final class FcMlKitFaceDetector implements FcFaceDetector {
   FcMlKitFaceDetector()
     : _detector = FaceDetector(

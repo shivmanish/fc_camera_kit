@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Every step of a long job, listed up front so the wait has a visible end.
-///
-/// Drawn for a dark backdrop: the kit's processing screens sit over a photo.
+/// Progress checklist styled for the dark processing backdrop.
 class FcStepList extends StatelessWidget {
   const FcStepList({required this.labels, required this.current, super.key});
 
   final List<String> labels;
 
-  /// Index of the running step; earlier ones are done, later ones waiting.
   final int current;
 
   @override
@@ -87,7 +84,6 @@ class _Indicator extends StatelessWidget {
         size: 21,
         color: Color(0xFF4ADE80),
       ),
-      // A spinner rather than an icon: only the running step should move.
       _StepStatus.active => const Padding(
         padding: EdgeInsets.all(2),
         child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),

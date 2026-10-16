@@ -11,12 +11,6 @@ import 'fc_camera_tool_button.dart';
 import 'fc_edited_photo.dart';
 import 'fc_resolved_image.dart';
 
-/// The shot, as it will be used: pinch or double-tap to check it is sharp,
-/// then Retake, Crop or Use photo.
-///
-/// Use photo is the one filled button and sits under the right thumb: the
-/// common path is a single tap. Retake and Crop are quieter, and Crop marks
-/// itself once the photo is edited.
 class FcPhotoReviewView extends StatelessWidget {
   const FcPhotoReviewView({
     required this.image,
@@ -98,14 +92,13 @@ class _Photo extends StatelessWidget {
       );
     }
     return _Zoomable(
-      // A new edit is a new picture: start it unzoomed.
+      // New key per edit resets the zoom.
       key: ValueKey(review.edit),
       child: FcEditedPhoto(image: image, size: size, edit: review.edit),
     );
   }
 }
 
-/// Pinch to zoom, or double-tap to jump to 2.5× where tapped and back.
 class _Zoomable extends StatefulWidget {
   const _Zoomable({required this.child, super.key});
 
@@ -120,8 +113,7 @@ class _ZoomableState extends State<_Zoomable>
   static const _doubleTapScale = 2.5;
 
   final _transform = TransformationController();
-  // Created up front: a lazy one would first be built in dispose(), where the
-  // ticker can no longer look up its TickerMode.
+  // Not lazy: first built in dispose() it can't look up TickerMode.
   late final AnimationController _animation;
   Animation<Matrix4>? _tween;
   Offset _tapAt = Offset.zero;
@@ -181,7 +173,6 @@ class _ZoomableState extends State<_Zoomable>
 class _Actions extends StatelessWidget {
   const _Actions({required this.canEdit});
 
-  /// The photo's size is known, so the editor can lay out its frame.
   final bool canEdit;
 
   @override
@@ -196,8 +187,6 @@ class _Actions extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // The stamp isn't on this preview; say so, so nobody retakes
-          // looking for it.
           const Text(
             'The stamp is added when you use the photo',
             textAlign: TextAlign.center,

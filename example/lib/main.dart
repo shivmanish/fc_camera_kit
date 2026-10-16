@@ -6,10 +6,9 @@ import 'src/app.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Once, before runApp. Reading any setting before this throws.
+  // Must run before runApp; reading a setting earlier throws.
   await FcCameraKit.instance.init(
-    // EXIF Software and a stamp line. A real app reads the version with
-    // package_info_plus and the environment from its build flavour.
+    // Hardcoded for the demo; a real app reads these from its build.
     app: const FcApp(
       name: 'FC Camera Kit Example',
       version: '1.0.0',
@@ -25,7 +24,7 @@ Future<void> main() async {
     placement: StampPlacement.extend,
     dateFormat: 'dd MMM yyyy, hh:mm a',
     requireLocation: true,
-    // Scanner defaults; scan() can override any of them per call.
+    // Defaults; each scan() call may override them.
     scan: const FcScanOptions(
       maxPages: 2,
       source: FcScanSource.cameraAndGallery,

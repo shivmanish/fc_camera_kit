@@ -5,11 +5,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../error/fc_camera_exception.dart';
 import 'fc_compression_policy.dart';
 
-/// Encodes to JPEG and brings the result under a byte budget.
-///
-/// Full resolution is preserved for as long as possible: quality is searched
-/// down first, and the image is only scaled once the quality floor cannot
-/// reach the budget on its own.
+/// Encodes to JPEG under a byte budget, downscaling only as a last resort.
 abstract final class FcImageCompressor {
   static Future<FcCompressionOutcome> toBudget({
     required Uint8List bytes,
@@ -28,9 +24,6 @@ abstract final class FcImageCompressor {
     Uint8List? smallest;
 
     for (var round = 0; round <= policy.maxDownscaleRounds; round++) {
-      // Highest quality first, stopping the moment one fits. Each attempt
-      // ships the whole frame to the platform encoder, so the number of
-      // attempts is the thing worth minimising.
       for (final quality in steps) {
         final encoded = await _encode(
           bytes,
@@ -52,7 +45,6 @@ abstract final class FcImageCompressor {
         }
       }
 
-      // Quality alone could not reach the budget — give up some resolution.
       final shorter = currentWidth < currentHeight
           ? currentWidth
           : currentHeight;
@@ -81,13 +73,10 @@ abstract final class FcImageCompressor {
       return await FlutterImageCompress.compressWithList(
         bytes,
         quality: quality,
-        // These are *minimums*: passing the current size keeps full
-        // resolution instead of the plugin's 1920x1080 default.
+        // Minimums, not targets; avoids the plugin's 1920x1080 default.
         minWidth: width,
         minHeight: height,
-        // format defaults to jpeg and keepExif to false, which is what we
-        // want: EXIF is written after compression, so carrying it here would
-        // only preserve a stale orientation tag.
+        // keepExif stays false: EXIF is rewritten after compression.
       );
     } catch (error, stackTrace) {
       throw ImageProcessingException(

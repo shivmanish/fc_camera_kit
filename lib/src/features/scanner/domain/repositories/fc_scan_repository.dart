@@ -8,11 +8,10 @@ import '../entities/fc_scan_stage.dart';
 import '../entities/fc_scan_stamp.dart';
 
 abstract interface class FcScanRepository {
-  /// Opens the platform scanner. A user cancel is a `CancelledFailure`.
+  /// A user cancel returns `CancelledFailure`.
   Future<FcResult<List<XFile>>> acquire(FcScanOptions options);
 
-  /// Stamps (when [stamp] is set), compresses to [maxBytes] and, when
-  /// [writeMetadata] is on, embeds [metadata]. Reports each stage as it starts.
+  /// Stamp, compress, embed metadata; reports each stage as it starts.
   Future<FcResult<FcScannedPage>> process(
     XFile raw, {
     required int maxBytes,
@@ -22,9 +21,9 @@ abstract interface class FcScanRepository {
     void Function(FcScanStage stage)? onStage,
   });
 
-  /// Removes the scanner's own copies and any [pages] already produced.
+  /// Also deletes any [pages] already produced.
   Future<void> discard({List<FcScannedPage> pages = const []});
 
-  /// Removes the scanner's own copies once pages are safely processed.
+  /// Call once pages are safely processed.
   Future<void> clearCache();
 }

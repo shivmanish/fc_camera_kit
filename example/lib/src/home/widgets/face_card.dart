@@ -6,7 +6,7 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'image_strip_card.dart';
 
-/// Every face scan this session, newest first.
+/// Face scans from this session, newest first.
 class FaceCard extends StatelessWidget {
   const FaceCard({super.key});
 

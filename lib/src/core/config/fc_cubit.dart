@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Shared cubit base. Adds [safeEmit] (no-op after close) and an optional
-///  runner for cubits that wrap a single use case.
+/// Base cubit whose [safeEmit] is ignored once the cubit is closed.
 abstract class FcCubit<S, T, P> extends Cubit<S> {
   FcCubit({required S initialState}) : super(initialState);
 

@@ -15,15 +15,10 @@ import '../../../core/image/stamp/fc_stamp_style.dart';
 import '../../capture/fc_capture_result.dart';
 import 'fc_stamp_state.dart';
 
-/// Runs the whole processing chain: stamp, compress, embed metadata.
-///
-/// The three steps live together because their order is load-bearing — a JPEG
-/// re-encode discards EXIF, so metadata must be written *after* compression,
-/// never before.
+/// Stamp, compress, embed metadata; EXIF goes last as re-encoding drops it.
 class FcStampCubit extends FcCubit<FcStampState, FcCaptureResult, XFile> {
   FcStampCubit() : super(initialState: const FcStampIdle());
 
-  /// Per-call arguments override the kit's configured defaults.
   Future<void> process({
     required XFile source,
     required FcPhotoMetadata metadata,
@@ -54,7 +49,7 @@ class FcStampCubit extends FcCubit<FcStampState, FcCaptureResult, XFile> {
 
       final outcome = await FcImageCompressor.toBudget(
         bytes: stamped.bytes,
-        // Room for the EXIF block, so the finished file stays under the limit.
+        // Leave headroom for the EXIF block.
         maxBytes: (maxBytes ?? kit.maxBytes) - FcExifWriter.reservedBytes,
         width: stamped.width,
         height: stamped.height,
@@ -71,7 +66,7 @@ class FcStampCubit extends FcCubit<FcStampState, FcCaptureResult, XFile> {
           FcCaptureResult(
             file: XFile(file.path),
             metadata: embedded,
-            // The file as returned, EXIF included.
+            // Measured after EXIF is written.
             sizeBytes: await file.length(),
             width: outcome.width,
             height: outcome.height,

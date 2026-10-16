@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/permissions/fc_permission_status.dart';
 import '../../../../core/permissions/fc_permission_type.dart';
 
-/// Everything the permission sheet and dialog render from.
 final class FcPermissionState extends Equatable {
   const FcPermissionState({
     this.required = const {},
@@ -13,30 +12,26 @@ final class FcPermissionState extends Equatable {
     this.loaded = false,
   });
 
-  /// What this gate demands. Kept in state so [allGranted] can verify the
-  /// statuses actually *cover* it.
+  /// Kept so [allGranted] can check the statuses cover every requirement.
   final Set<FcPermissionType> required;
 
   final Map<FcPermissionType, FcPermissionStatus> statuses;
 
-  /// Device-wide location toggle.
   final bool serviceEnabled;
 
-  /// A request or a settings hand-off is in flight.
   final bool busy;
 
-  /// First status read has completed, so [allGranted] is meaningful.
+  /// True after the first status read; [allGranted] is unreliable before.
   final bool loaded;
 
   bool get allGranted =>
       loaded && required.every((type) => statuses[type]?.isUsable ?? false);
 
-  /// True once a blocked permission can only be fixed from App Settings.
   bool get needsAppSettings => statuses.values.any(
     (status) => !status.isUsable && status.needsAppSettings,
   );
 
-  /// Required types in declaration order, so rows never reshuffle.
+  /// Declaration order, so rows keep their position.
   List<FcPermissionType> get ordered =>
       FcPermissionType.values.where(required.contains).toList();
 

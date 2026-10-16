@@ -1,28 +1,20 @@
 import 'dart:typed_data';
 
-/// Pixel layouts the live camera delivers; both are read by ML Kit as is.
 enum FcFrameFormat { nv21, bgra8888 }
 
-/// Which camera on the device.
 enum FcCameraLens { front, back }
 
-/// How much detail the live camera captures.
 enum FcCameraResolution {
-  /// 720p: light enough to analyse every frame.
+  /// 720p, cheap enough to analyse every frame.
   analysis,
 
-  /// 1080p: sharp enough for a field photo, yet cheap to stamp and compress
-  /// on the low-memory phones the in-app camera exists for.
+  /// 1080p, so low-memory phones can still stamp and compress it.
   photo,
 }
 
-/// The flash for the next photo, as the system camera app offers it.
 enum FcFlashMode { auto, on, off }
 
-/// One analysis frame from the live camera, free of any plugin type.
-///
-/// Not Equatable on purpose: it carries a megabyte of pixels and is never
-/// compared, only handed on.
+/// Not Equatable: holds megabytes of pixels and is never compared.
 final class FcCameraFrame {
   const FcCameraFrame({
     required this.bytes,
@@ -35,12 +27,12 @@ final class FcCameraFrame {
 
   final Uint8List bytes;
 
-  /// Sensor size, before rotation.
+  /// Before rotation.
   final int width;
   final int height;
   final int bytesPerRow;
 
-  /// Clockwise rotation that makes the frame upright: 0, 90, 180 or 270.
+  /// Clockwise: 0, 90, 180 or 270.
   final int rotationDegrees;
   final FcFrameFormat format;
 
@@ -49,13 +41,13 @@ final class FcCameraFrame {
   int get uprightWidth => _sideways ? height : width;
   int get uprightHeight => _sideways ? width : height;
 
-  /// Mean brightness 0–255 from a sparse sample, cheap enough per frame.
+  /// Sparse sample, cheap enough to run per frame.
   double sampleLuminance({int stride = 64}) {
     var sum = 0;
     var count = 0;
     switch (format) {
       case FcFrameFormat.nv21:
-        // The first width × height bytes are the Y (luma) plane.
+        // First width * height bytes are the Y plane.
         final end = (width * height).clamp(0, bytes.length);
         for (var i = 0; i < end; i += stride) {
           sum += bytes[i];
@@ -63,7 +55,7 @@ final class FcCameraFrame {
         }
       case FcFrameFormat.bgra8888:
         for (var i = 0; i + 2 < bytes.length; i += stride * 4) {
-          // Rec. 601 luma, in integers: (29 B + 150 G + 77 R) / 256.
+          // Integer Rec. 601 luma.
           sum += (29 * bytes[i] + 150 * bytes[i + 1] + 77 * bytes[i + 2]) >> 8;
           count++;
         }

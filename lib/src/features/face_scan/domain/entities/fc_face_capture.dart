@@ -4,7 +4,6 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/image/metadata/fc_photo_metadata.dart';
 import 'fc_face_observation.dart';
 
-/// The selfie as taken, with everything known at that moment.
 final class FcFaceCapture extends Equatable {
   const FcFaceCapture({
     required this.file,
@@ -13,11 +12,10 @@ final class FcFaceCapture extends Equatable {
     this.metadata,
   });
 
-  /// Straight from the camera, before any processing.
   final XFile file;
   final DateTime capturedAt;
 
-  /// The face that was green when the shutter was pressed.
+  /// The face that passed every check at shutter time.
   final FcFaceObservation face;
   final FcPhotoMetadata? metadata;
 

@@ -22,27 +22,13 @@ import '../widgets/fc_crop_editor_view.dart';
 import '../widgets/fc_photo_review_view.dart';
 import '../widgets/fc_resolved_image.dart';
 
-/// The kit's own photo camera, shaped like the system camera app:
-///
-/// ```
-/// live (flash · pinch zoom · lens switch) ─► shutter
-///   ─► review (zoom to check) ─► Retake │ Crop & rotate │ Use photo
-/// ```
-///
-/// Closes with an `FcReviewedPhoto` (the shot and its crop and turn), or
-/// `null` when the user backs out. It keeps the host app in the foreground,
-/// so Android never kills the host to free memory while the camera is open.
-///
-/// The photo follows the screen's orientation, exactly as the preview shows
-/// it; Rotate turns it afterwards, so a portrait-locked host still gets
-/// landscape photos.
+/// In-app camera: live preview, review, crop; pops an `FcReviewedPhoto`.
+/// Stays in-process so Android can't kill the host app while shooting.
 class FcPhotoCameraPage extends StatelessWidget {
   const FcPhotoCameraPage({this.camera, this.imageFor, super.key});
 
-  /// Replaces the device camera in tests.
   final FcLiveCamera? camera;
 
-  /// How a shot is read for display; tests pass in-memory images.
   final ImageProvider Function(XFile photo)? imageFor;
 
   @override
@@ -87,8 +73,7 @@ class _PhotoCameraView extends StatelessWidget {
         canPop: review == null,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
-          // Back steps out one level, as in the system camera: the editor
-          // to the review, the review to a retake.
+          // Back steps out one level: editor to review, review to retake.
           final cubit = context.read<FcPhotoReviewCubit>();
           if (cubit.state?.editing ?? false) {
             cubit.cancelEditor();
@@ -97,12 +82,10 @@ class _PhotoCameraView extends StatelessWidget {
           }
         },
         child: Scaffold(
-          // Always dark: a camera surface, whatever the host theme.
           backgroundColor: Colors.black,
           body: review == null
               ? const _Live()
-              // Above both screens, so moving between them never re-reads
-              // the photo.
+              // Shared by both screens so switching never re-reads the file.
               : FcResolvedImage(
                   image: imageFor(review.photo),
                   builder: (context, status) {
@@ -130,7 +113,6 @@ class _Live extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         BlocBuilder<FcCameraCubit, FcCameraState>(
-          // The flash and the shutter don't change the picture.
           buildWhen: (previous, current) => !_sameCamera(previous, current),
           builder: (context, state) => switch (state) {
             FcCameraReady(:final sensorAspect) => GestureDetector(
@@ -171,7 +153,6 @@ class _Live extends StatelessWidget {
       previous.sensorAspect == current.sensorAspect;
 }
 
-/// Top-left way out, on every screen of the camera.
 class _CloseButton extends StatelessWidget {
   const _CloseButton();
 
@@ -222,7 +203,7 @@ class _Controls extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // Balances the lens switch so the shutter stays centred.
+              // Keeps the shutter centred.
               const SizedBox.square(dimension: _RoundButton.size),
               Stack(
                 alignment: Alignment.center,
@@ -257,7 +238,7 @@ class _Controls extends StatelessWidget {
 
   Future<void> _shoot(BuildContext context) async {
     unawaited(HapticFeedback.mediumImpact());
-    // The moment the photo is of: taken at the press, not when the file lands.
+    // Stamp the press time, not when the file lands.
     final takenAt = DateTime.now();
     final result = await context.read<FcCameraCubit>().capture();
     if (!context.mounted) return;
@@ -265,7 +246,6 @@ class _Controls extends StatelessWidget {
     result.when(
       success: (photo) =>
           context.read<FcPhotoReviewCubit>().review(photo, takenAt: takenAt),
-      // The camera is still live: say so and let them press again.
       failure: (_) => ScaffoldMessenger.maybeOf(context)
         ?..clearSnackBars()
         ..showSnackBar(
@@ -306,8 +286,7 @@ class _RoundButton extends StatelessWidget {
   }
 }
 
-/// Locks the camera to the screen's orientation, as the face camera does, so
-/// the saved photo matches the preview.
+/// Locks capture to the screen orientation so photos match the preview.
 class _FollowScreenOrientation extends StatefulWidget {
   const _FollowScreenOrientation({required this.child});
 

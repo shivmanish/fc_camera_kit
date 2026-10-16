@@ -3,10 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/error/fc_camera_failure.dart';
 import '../../capture/fc_capture_result.dart';
 
-/// Which step of the pipeline is running.
-///
-/// Surfaced because a 12 MP photo takes real seconds — one undifferentiated
-/// spinner is the difference between "working" and "frozen".
+/// Exposed so slow processing of large photos shows real progress.
 enum FcStampStage {
   stamping('Adding the stamp'),
   compressing('Compressing'),
@@ -24,7 +21,6 @@ sealed class FcStampState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Nothing has been processed yet.
 final class FcStampIdle extends FcStampState {
   const FcStampIdle();
 }

@@ -4,7 +4,6 @@ import '../../../../core/error/fc_camera_failure.dart';
 import '../../../../core/permissions/fc_permissions.dart';
 import '../../../../core/ui/fc_ui.dart';
 
-/// The camera couldn't start: why, and the one action that can fix it.
 class FcCameraErrorView extends StatelessWidget {
   const FcCameraErrorView({
     required this.failure,

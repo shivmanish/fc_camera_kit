@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// The 72 dp shutter: full colour when [onPressed] is set, dimmed otherwise.
 class FcCameraShutter extends StatelessWidget {
   const FcCameraShutter({required this.onPressed, super.key});
 

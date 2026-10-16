@@ -1,21 +1,16 @@
 import 'package:equatable/equatable.dart';
 
-/// Where the scanner may take pages from.
 enum FcScanSource { camera, gallery, cameraAndGallery }
 
-/// How much clean-up the platform scanner offers after capture.
 enum FcScanEnhancement {
-  /// Crop and rotate only.
   basic,
 
-  /// Adds filters (grayscale, B&W, colour).
   filters,
 
-  /// Adds ML clean-up such as shadow and stain removal (Android).
+  /// ML shadow and stain removal; Android only.
   full,
 }
 
-/// Scanner defaults, set once through `FcCameraKit.init(scan: ...)`.
 final class FcScanOptions extends Equatable {
   const FcScanOptions({
     this.maxPages = 1,
@@ -25,16 +20,12 @@ final class FcScanOptions extends Equatable {
     this.stamp = false,
   });
 
-  /// Must be positive; `init()` and `scan()` fail cleanly otherwise.
   final int maxPages;
   final FcScanSource source;
   final FcScanEnhancement enhancement;
 
-  /// Writes who / when / where into each page's EXIF.
   final bool embedMetadata;
 
-  /// Burns who / when / where onto each page, styled like `capture()`.
-  /// Off by default: documents are usually kept unmarked.
   final bool stamp;
 
   FcScanOptions copyWith({

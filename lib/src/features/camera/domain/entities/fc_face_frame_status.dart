@@ -1,29 +1,18 @@
 import 'package:equatable/equatable.dart';
 
-/// What the face ring says at a glance.
 enum FcFaceFrameTone {
-  /// Looking for a valid face: red ring.
   searching,
 
-  /// Valid face, liveness passed: green ring.
+  /// Face valid and liveness passed.
   ready,
-
-  /// Something is running on the taken photo: progress arc.
   working,
-
-  /// Finished: full green ring with a tick.
   done,
-
-  /// Finished badly: red ring with a cross.
   failed,
 }
 
-/// The buttons the frame can offer once a flow has stopped.
 enum FcFaceFrameAction { primary, secondary }
 
-/// Everything the face-detection frame shows, as one value.
-///
-/// The camera feature renders it; whoever owns the flow decides it.
+/// What the face frame shows; the host flow decides it, the camera renders it.
 final class FcFaceFrameStatus extends Equatable {
   const FcFaceFrameStatus({
     required this.tone,
@@ -45,34 +34,28 @@ final class FcFaceFrameStatus extends Equatable {
 
   final FcFaceFrameTone tone;
 
-  /// The one line the user reads: a hint while live, a title otherwise.
   final String message;
 
-  /// Changes whenever [message] does, so a message that returns gets a fresh
-  /// identity in transitions instead of clashing with its fading-out self.
+  /// New id per message so a repeated message doesn't clash with its fade-out.
   final int messageId;
   final String? detail;
   final bool shutterEnabled;
 
-  /// Shown instead of the live preview once a photo has been taken.
   final String? frozenImagePath;
 
-  /// Steps listed under the ring while [tone] is working.
   final List<String> steps;
   final int currentStep;
 
-  /// Labels for the buttons under the message; `null` hides a button.
+  /// `null` hides the button.
   final String? primaryAction;
   final String? secondaryAction;
 
-  /// While ready: time left before the photo takes itself; the ring fills
-  /// over it. `null` when there is no auto-capture.
+  /// Auto-capture time left; `null` when there is no auto-capture.
   final Duration? countdown;
 
-  /// The frozen photo already matches the mirrored preview; show it as is.
+  /// Frozen photo is already mirrored; don't flip it again.
   final bool frozenMirrored;
 
-  /// The camera is being judged: red or green, frames flowing.
   FcFaceFrameStatus copyWith({String? message, int? messageId}) =>
       FcFaceFrameStatus(
         tone: tone,
@@ -92,7 +75,6 @@ final class FcFaceFrameStatus extends Equatable {
   bool get isLive =>
       tone == FcFaceFrameTone.searching || tone == FcFaceFrameTone.ready;
 
-  /// The shutter is on screen only while live and no buttons are offered.
   bool get showsShutter => isLive && primaryAction == null;
 
   @override

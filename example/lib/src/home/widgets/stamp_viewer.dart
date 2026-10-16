@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:native_exif/native_exif.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Opens a photo or scanned page full screen.
+/// Shows a photo or scanned page full screen.
 Future<void> openStampViewer(
   BuildContext context,
   String path, {
@@ -18,11 +18,8 @@ Future<void> openStampViewer(
   );
 }
 
-/// Full-bleed, zoomable view — the only way to read the stamp at capture
-/// resolution, since a thumbnail shrinks it past legibility.
-///
-/// Share and EXIF actions exist to prove the two halves of the promise: the
-/// stamp survives a share, and the same facts are readable as metadata.
+/// Zoomable full-resolution view where the stamp is legible.
+/// Share and EXIF actions show the stamp and metadata both survive.
 class StampViewer extends StatelessWidget {
   const StampViewer({
     required this.path,
@@ -33,8 +30,7 @@ class StampViewer extends StatelessWidget {
   final String path;
   final String title;
 
-  /// A share sheet that fails should say so. Left unguarded, a
-  /// MissingPluginException or a cancelled intent only reaches the console.
+  /// Surfaces share failures instead of leaving them in the console.
   Future<void> _share(BuildContext context) async {
     try {
       await SharePlus.instance.share(
@@ -92,16 +88,10 @@ class StampViewer extends StatelessWidget {
   }
 }
 
-/// Tags that `getAttributes` cannot return.
-///
-/// Its Android implementation reads from a hardcoded allowlist — its own
-/// comment says "we have to list all common tags here. To be extended.." — and
-/// these are not on it. The tags *are* written; the bulk read just cannot see
-/// them. Reading one singly goes straight to ExifInterface and works.
+/// Tags Android's bulk `getAttributes` omits; they are read one by one.
 const _readSeparately = ['ImageDescription', 'OffsetTimeOriginal'];
 
-/// Reads the tags back off disk, rather than echoing what we meant to write.
-/// Only a read proves the write landed.
+/// Reads tags back from disk, proving the write actually landed.
 Future<Map<String, Object>> _readExif(String path) async {
   final exif = await Exif.fromPath(path);
   try {
@@ -142,12 +132,7 @@ class _MetadataSheet extends StatelessWidget {
   final String path;
   final ScrollController controller;
 
-  /// The tags the kit writes, with the label to show for each.
-  ///
-  /// EXIF tag names are not reading material — `ImageDescription` is where the
-  /// place has to live (EXIF has no `Place` tag, and a made-up name is dropped
-  /// by Android's ExifInterface), but nobody should have to know that to read
-  /// the sheet.
+  /// Written tags with friendly labels; place lives in `ImageDescription`.
   static const _written = <String, String>{
     'DateTimeOriginal': 'Taken',
     'OffsetTimeOriginal': 'Time zone',
@@ -174,8 +159,7 @@ class _MetadataSheet extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // A read that throws is itself the answer: the file has no readable
-        // EXIF, which is exactly what this sheet exists to reveal.
+        // A failed read means the file has no readable EXIF; show that.
         if (snapshot.hasError) {
           return Padding(
             padding: const EdgeInsets.all(24),
@@ -189,9 +173,7 @@ class _MetadataSheet extends StatelessWidget {
         }
 
         final tags = snapshot.data ?? const <String, Object>{};
-        // Ours first, in the order declared above, so the sheet reads as a
-        // record rather than an alphabetical dump. Everything the camera left
-        // behind follows.
+        // Kit tags first, in declared order, then whatever the camera wrote.
         final order = _written.keys.toList();
         final keys = tags.keys.toList()
           ..sort((a, b) {

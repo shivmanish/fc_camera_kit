@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/ui/fc_ui.dart';
 
-/// Shown only when a flow page is the first route and can't close.
+/// Fallback when a flow page is the first route and cannot pop.
 class FcFlowFinishedView extends StatelessWidget {
   const FcFlowFinishedView({
     required this.completed,

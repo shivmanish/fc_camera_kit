@@ -15,14 +15,7 @@ import '../metadata/fc_geo_location.dart';
 import '../metadata/fc_photo_metadata.dart';
 import 'fc_stamp_style.dart';
 
-/// Burns the who/when/where lines into the pixels.
-///
-/// Uses `dart:ui` rather than a pure-Dart encoder: only a real [ui.Canvas]
-/// gives proper text layout and a Gaussian blur, and it runs on the GPU.
-///
-/// Returns **PNG** bytes. That is deliberate — `toByteData` encodes nothing
-/// else, and handing lossless pixels to the compressor means the only lossy
-/// step in the whole pipeline is the final JPEG encode.
+/// Draws who / when / where onto a photo, returning lossless pixels.
 abstract final class FcStampRenderer {
   static Future<FcStampedImage> render({
     required Uint8List source,
@@ -42,7 +35,6 @@ abstract final class FcStampRenderer {
         includeDevice: includeDevice,
       );
       if (lines.isEmpty) {
-        // Nothing to say, but the caller still needs pixels and dimensions.
         return FcStampedImage(
           bytes: await _encodePixels(image),
           width: image.width,
@@ -52,14 +44,10 @@ abstract final class FcStampRenderer {
 
       final width = image.width.toDouble();
       final height = image.height.toDouble();
-      // Overlay takes a fraction of the frame; extend owns its panel and can
-      // use the full width.
       final targetWidth = placement == StampPlacement.overlay
           ? width * style.overlayMaxWidthRatio
           : width;
 
-      // Size the type so the badge lands on that width, rather than picking a
-      // point size and hoping.
       final fontSize = fitFontSize(lines, style, targetWidth);
       final insets = style.insetsFor(placement, fontSize);
       final maxStripWidth = targetWidth;
@@ -91,8 +79,7 @@ abstract final class FcStampRenderer {
         canvas.drawRect(panel, ui.Paint()..color = style.panelColor);
         _paintLines(canvas, painters, insets.horizontal, height + insets.top);
       } else {
-        // The narrower of the cap and the text itself, so short lines get
-        // short strips instead of a band across the photo.
+        // Hug the text so short lines don't get a full-width band.
         final textWidth = painters.fold<double>(
           0,
           (widest, painter) => painter.width > widest ? painter.width : widest,
@@ -136,8 +123,7 @@ abstract final class FcStampRenderer {
     }
   }
 
-  /// Blurs only the slice of photo sitting behind the text, never the whole
-  /// image: draw that region again through a blur filter, then tint it.
+  // Redraws just the strip through a blur, then tints it.
   static void _drawFrostedStrip(
     ui.Canvas canvas,
     ui.Image image,
@@ -162,8 +148,6 @@ abstract final class FcStampRenderer {
       ..drawRect(strip, ui.Paint()..color = style.scrimColor);
   }
 
-  /// The stamp's text, in order. Lines with nothing to show are dropped so a
-  /// missing location never leaves a blank row.
   @visibleForTesting
   static List<String> buildLines(
     FcPhotoMetadata meta,
@@ -188,7 +172,7 @@ abstract final class FcStampRenderer {
     final location = meta.location;
     if (location != null) {
       final address = location.address;
-      // A fix from a mock-location app is kept, but never passes as real.
+      // Mocked fixes stay, but are visibly marked.
       final mocked = location.isMocked ? ' ${FcGeoLocation.mockedMark}' : '';
       lines.add(
         address == null || address.isEmpty
@@ -197,16 +181,12 @@ abstract final class FcStampRenderer {
       );
     }
 
-    // Always in EXIF, only here when asked for — it is audit data, not
-    // something the person looking at the photo needs to read.
     final device = [
       meta.deviceMake,
       meta.deviceModel,
     ].whereType<String>().join(' | ');
     if (includeDevice && device.isNotEmpty) lines.add(device);
 
-    // Which app took it; outside production also its build, so a test photo
-    // can never pass for a real one.
     if (meta.app case final app?) lines.add(app.stampLine);
 
     if (meta.note != null && meta.note!.isNotEmpty) lines.add(meta.note!);
@@ -214,8 +194,6 @@ abstract final class FcStampRenderer {
     return lines;
   }
 
-  /// First line is the identity and carries the most weight; the rest are
-  /// muted so the stamp reads as a hierarchy, not a wall of text.
   static List<TextPainter> _layout(
     List<String> lines,
     FcStampStyle style,
@@ -229,8 +207,6 @@ abstract final class FcStampRenderer {
             text: lines[i],
             style: TextStyle(
               color: i == 0 ? style.textColor : style.mutedTextColor,
-              // Same size on every line; hierarchy comes from weight and
-              // colour instead, which costs no extra height.
               fontSize: fontSize,
               fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w500,
               height: style.lineSpacing,
@@ -245,16 +221,8 @@ abstract final class FcStampRenderer {
     ];
   }
 
-  /// Solves for the font size whose longest line, plus horizontal padding,
-  /// exactly fills [targetWidth].
-  ///
-  /// Text width is very nearly linear in point size, so one measurement at a
-  /// reference size gives a closed-form first guess:
-  ///
-  ///     f = target / (widest / ref + 2 x paddingRatio)
-  ///
-  /// Hinting makes that ~1% out, so a single correction pass re-measures at
-  /// the guess and rescales. Two layouts total, no search loop.
+  // Width is ~linear in size: solve from one reference measurement, then
+  // one rescale pass corrects the ~1% hinting error.
   @visibleForTesting
   static double fitFontSize(
     List<String> lines,
@@ -276,8 +244,7 @@ abstract final class FcStampRenderer {
     return size.clamp(style.minFontSize, style.maxFontSize);
   }
 
-  /// Width of the longest line at [fontSize], measured at the weight each line
-  /// is actually drawn at — bold is wider, and guessing would overflow.
+  // Measured at the drawn weight; bold is wider.
   static double _widestAt(List<String> lines, double fontSize) {
     var widest = 0.0;
 
@@ -300,8 +267,6 @@ abstract final class FcStampRenderer {
     return widest;
   }
 
-  /// The user's crop and turn, applied once to the decoded pixels so the
-  /// stamp is drawn on exactly what they kept.
   static Future<ui.Image> _edited(ui.Image image, FcPhotoEdit edit) async {
     if (edit.isNone) return image;
     try {
@@ -348,17 +313,14 @@ abstract final class FcStampRenderer {
     }
   }
 
-  /// Raw pixels wrapped in a BMP. See [FcBmpEncoder] for why not PNG.
   static Future<Uint8List> _encodePixels(ui.Image image) async {
-    // rawRgba is toByteData's default, and the point here: it is a plain
-    // readback, where ImageByteFormat.png would deflate 45 MB we throw away.
+    // Default rawRgba is a plain readback; png would deflate needlessly.
     final data = await image.toByteData();
     if (data == null) {
       throw const ImageProcessingException('Stamped image read back as null.');
     }
 
-    // A per-pixel loop over the whole frame: off the UI isolate so the screen
-    // keeps painting, as FcFrameSnapshot does. Only plain values cross over.
+    // Per-pixel loop runs off the UI isolate; pass only plain values.
     final rgba = data.buffer.asUint8List();
     final width = image.width;
     final height = image.height;
@@ -366,10 +328,6 @@ abstract final class FcStampRenderer {
   }
 }
 
-/// A stamped frame, still lossless, with its size already known.
-///
-/// Carrying the dimensions removes a full decode downstream that existed only
-/// to re-measure what the renderer already knew.
 final class FcStampedImage {
   const FcStampedImage({
     required this.bytes,
@@ -377,7 +335,6 @@ final class FcStampedImage {
     required this.height,
   });
 
-  /// An in-memory intermediate for the compressor. Never written to disk.
   final Uint8List bytes;
 
   final int width;

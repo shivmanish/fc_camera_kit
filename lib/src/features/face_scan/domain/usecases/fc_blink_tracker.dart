@@ -5,8 +5,7 @@ import '../entities/fc_face_rules.dart';
 
 enum _Eyes { unknown, open, closed }
 
-/// Counts real blinks of one tracked face: eyes open → closed → open again
-/// within [FcFaceRules.blinkWindow].
+/// Counts blinks: eyes open, closed, then open within [FcFaceRules.blinkWindow].
 final class FcBlinkTracker {
   FcBlinkTracker({required this.rules, DateTime Function()? clock})
     : _now = clock ?? DateTime.now;
@@ -22,7 +21,7 @@ final class FcBlinkTracker {
   bool get satisfied => _blinks >= rules.blinks;
 
   void observe(FcFaceObservation face) {
-    // A different face (another person, a photo swapped in) starts over.
+    // A new tracked face (another person, a swapped photo) starts over.
     if (face.trackingId != _trackingId) {
       reset();
       _trackingId = face.trackingId;
@@ -33,7 +32,7 @@ final class FcBlinkTracker {
     final right = face.rightEyeOpen;
     if (left == null || right == null) return;
 
-    // Both eyes must agree: a wink or a squint is not a blink.
+    // Both eyes must close: a wink or squint isn't a blink.
     final open = min(left, right) > rules.eyesOpenAbove;
     final closed = max(left, right) < rules.eyesClosedBelow;
 
@@ -51,7 +50,7 @@ final class FcBlinkTracker {
           if (shutFor <= rules.blinkWindow) _blinks++;
           _eyes = _Eyes.open;
         } else if (shutFor > rules.blinkWindow) {
-          // Held shut too long: not a blink; wait for the eyes to open.
+          // Held shut too long; wait for the eyes to reopen.
           _eyes = _Eyes.unknown;
         }
     }

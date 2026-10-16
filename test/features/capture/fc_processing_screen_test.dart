@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/fake_live_camera.dart';
 import '../../helpers/fc_test_app.dart';
 
-/// Counts picks and backs out, like a user cancelling the gallery.
+/// Counts picks and returns nothing, as a cancelled gallery does.
 final class _FakeImageSource extends FcImageSource {
   var picks = 0;
 
@@ -61,7 +61,7 @@ void main() {
     ),
   );
 
-  // Spinners never settle, so advance time in fixed steps instead.
+  // Spinners never settle; pump fixed steps instead.
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
@@ -78,7 +78,7 @@ void main() {
     expect(camera.calls, contains('open'));
     expect(gallery.picks, 0);
 
-    // Backing out of the camera cancels the whole capture.
+    // Leaving the camera cancels the capture.
     await tester.tap(find.byType(FcCloseButton));
     await settle(tester);
     expect(await outcome, const CancelledFailure());
@@ -97,8 +97,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    // Stamping needs a real file and the native compressor, so stop at the
-    // hand-off: the camera is gone and processing has the photo.
+    // Stamping needs a real file and native compressor; stop at the hand-off.
     expect(camera.calls, contains('takePicture'));
     expect(find.byType(FcPhotoCameraPage), findsNothing);
     expect(find.byType(FcProcessingScreen), findsOneWidget);

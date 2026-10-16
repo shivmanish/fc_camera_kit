@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Shared shell: a labelled section with a rounded surface beneath it.
-///
-/// Matches the kit's own sheet styling — same radius, same tonal fill — so the
-/// package surfaces do not look bolted on to the host app.
+/// Labelled section on a rounded surface, styled like the kit's own sheets.
 class SectionCard extends StatelessWidget {
   const SectionCard({
     required this.label,
@@ -53,7 +50,7 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-/// Small tinted icon square, the recurring motif across the demo.
+/// Tinted icon square used across the demo.
 class TintedIcon extends StatelessWidget {
   const TintedIcon({required this.icon, this.color, this.size = 40, super.key});
 

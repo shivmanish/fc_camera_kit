@@ -3,7 +3,6 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../domain/entities/fc_face_observation.dart';
 import '../../domain/entities/fc_face_result.dart';
 
-/// ML Kit's [Face] read into the plugin-free entity.
 final class FcFaceObservationModel extends FcFaceObservation {
   const FcFaceObservationModel({
     required super.box,
@@ -13,8 +12,7 @@ final class FcFaceObservationModel extends FcFaceObservation {
     super.trackingId,
   });
 
-  /// [uprightWidth] and [uprightHeight] are the frame's size after rotation,
-  /// the space ML Kit reports the box in.
+  /// Upright size is the frame after rotation, the space ML Kit's box uses.
   factory FcFaceObservationModel.fromMlKit(
     Face face, {
     required int uprightWidth,

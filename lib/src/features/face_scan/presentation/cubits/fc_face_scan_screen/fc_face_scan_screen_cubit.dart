@@ -37,14 +37,10 @@ import '../fc_face_session/fc_face_session_cubit.dart';
 import '../fc_face_session/fc_face_session_state.dart';
 import 'fc_face_scan_screen_state.dart';
 
-/// Reads the device location once; never throws.
+/// Must not throw.
 typedef FcLocationReader = Future<FcResult<FcGeoLocation?>> Function();
 
-/// Runs the face scan screen: settings, permissions, the camera, detection,
-/// the photo, and the single outcome.
-///
-/// Owns the camera, detection and session cubits and closes them with
-/// itself, so nothing outlives the screen.
+/// Drives the face scan screen; owns its child cubits and closes them with itself.
 class FcFaceScanScreenCubit
     extends FcCubit<FcFaceScanScreenState, FcFaceResult, void> {
   FcFaceScanScreenCubit({
@@ -99,10 +95,8 @@ class FcFaceScanScreenCubit
   Timer? _hintHold;
   int _messageId = 0;
 
-  /// A photo is being taken; a second shutter tap is ignored.
   bool _shooting = false;
 
-  /// The size the screen is laid out at; the oval follows it.
   Size? _layout;
 
   late FcFaceRules _rules;
@@ -122,13 +116,10 @@ class FcFaceScanScreenCubit
     required bool mirror,
   }) => FcFrameSnapshot.save(frame, mirror: mirror);
 
-  /// The live camera, once the screen has one.
   FcCameraCubit? get camera => _camera;
 
-  /// Validates settings and asks the screen for the permissions it needs.
   Future<void> start() async {
-    // After the first frame, so the screen is listening and the permission
-    // sheet has a route to sit on.
+    // Post-frame so the screen is listening and the sheet has a route.
     await SchedulerBinding.instance.endOfFrame;
     if (isClosed || state is! FcFaceScanPreparing) return;
 
@@ -161,8 +152,7 @@ class FcFaceScanScreenCubit
     await _camera?.start();
   }
 
-  /// The screen's size, reported on every layout. Re-aims the camera and the
-  /// framing rules whenever it changes (rotation, split screen, tablet).
+  /// Re-aims the camera and rules on size change (rotation, split screen).
   void layoutChanged(Size size) {
     if (size.isEmpty || size == _layout || isClosed) return;
     _layout = size;
@@ -170,7 +160,6 @@ class FcFaceScanScreenCubit
     _updateTarget();
   }
 
-  /// Maps the on-screen oval into the camera frame for the face rules.
   void _updateTarget() {
     final size = _layout;
     final camera = _camera?.state;
@@ -193,8 +182,7 @@ class FcFaceScanScreenCubit
     );
   }
 
-  /// The shutter, pressed or automatic: the frame that just passed every
-  /// check becomes the photo, so moving away afterwards can't spoil it.
+  /// Uses the last passing frame, so moving away afterwards can't spoil it.
   Future<void> shutter() async {
     final detection = _detection;
     final session = _session;
@@ -223,7 +211,7 @@ class FcFaceScanScreenCubit
     }
     _shooting = false;
     if (isClosed) {
-      // Nobody will process it; don't leave the photo on disk.
+      // Nothing will process it; delete the photo.
       await FcImageStore.deleteQuietly(photo.path);
       return;
     }
@@ -238,7 +226,7 @@ class FcFaceScanScreenCubit
     );
   }
 
-  /// The face as it appears in a left–right flipped photo.
+  /// Mirrors the face box for a flipped photo.
   static FcFaceObservation _mirrored(FcFaceObservation face) {
     final box = face.box;
     return FcFaceObservation(
@@ -266,7 +254,7 @@ class FcFaceScanScreenCubit
 
     switch (action) {
       case FcFaceFrameAction.primary:
-        // A location that failed once is fetched again for the new try.
+        // Refetch a location that failed before.
         _fetchLocation();
         session!.reset();
         _detection?.resume();
@@ -276,8 +264,7 @@ class FcFaceScanScreenCubit
     }
   }
 
-  /// The close button. Once the selfie is finished it is handed over rather
-  /// than thrown away.
+  /// Hands over a finished selfie instead of discarding it.
   void cancel() {
     final session = _session?.state;
     if (session is FcFaceSessionCompleted) return _complete(session.result);
@@ -285,12 +272,12 @@ class FcFaceScanScreenCubit
     safeEmit(FcFaceScanLeaving(status: _currentStatus));
   }
 
-  /// A system back that did close the route is a cancel.
+  /// A system back that closed the route counts as a cancel.
   void systemBack({required bool didPop}) {
     if (didPop) _reporter.cancelled();
   }
 
-  /// The route didn't close; [stillShown] when it is still on screen.
+  /// Route didn't close; [stillShown] when it's still visible.
   void routeNotClosed({required bool stillShown}) {
     if (!stillShown || isClosed) return;
     final leaving = state;
@@ -363,7 +350,7 @@ class FcFaceScanScreenCubit
       ..add(camera.stream.listen((_) => _updateTarget()));
   }
 
-  /// Started while the user frames their face, so it's ready by capture.
+  /// Fetched while the user frames, so it's ready by capture.
   void _fetchLocation() {
     if (_needsLocation) _location = _readLocation();
   }
@@ -398,7 +385,7 @@ class FcFaceScanScreenCubit
     _sync();
     if (session is! FcFaceSessionCompleted) return;
 
-    // Let the tick land before the screen goes.
+    // Let the tick show before the screen closes.
     _doneTimer?.cancel();
     _doneTimer = Timer(_showDoneFor, () => _complete(session.result));
   }
@@ -439,16 +426,13 @@ class FcFaceScanScreenCubit
     safeEmit(
       FcFaceScanActive(
         status,
-        // Back only while nothing is in hand: not mid-processing, and not
-        // while a finished selfie waits to be handed over.
+        // Back is allowed only when nothing is processing or awaiting hand-over.
         canPop: session is FcFaceSessionLive || session is FcFaceSessionFailed,
       ),
     );
   }
 
-  /// Gives each new message a fresh id, and holds a red hint briefly before
-  /// swapping it for another red one, so hints read instead of flickering.
-  /// Turning green, or any other change, is never delayed.
+  /// Holds a red hint briefly before another red one; going green is never delayed.
   FcFaceFrameStatus _withMessageId(FcFaceFrameStatus next) {
     final current = switch (state) {
       FcFaceScanActive(:final status) => status,
@@ -475,7 +459,7 @@ class FcFaceScanScreenCubit
     return next.copyWith(messageId: current.messageId);
   }
 
-  /// Green for [_autoCaptureAfter] takes the photo; leaving green cancels it.
+  /// Green for [_autoCaptureAfter] shoots; leaving green cancels.
   void _syncAutoCapture(FcFaceFrameStatus status) {
     final ready = status.tone == FcFaceFrameTone.ready;
     if (!ready || _autoCaptureAfter <= Duration.zero) {
@@ -551,12 +535,12 @@ class FcFaceScanScreenCubit
 
   @override
   Future<void> close() async {
-    // Report first: the host hears the screen went the moment it goes.
+    // Report first so the host hears of the close immediately.
     _reporter.dispose();
     _doneTimer?.cancel();
     _autoCaptureTimer?.cancel();
     _hintHold?.cancel();
-    // All at once: the camera starts releasing the moment the screen goes.
+    // Close together so the camera starts releasing at once.
     await Future.wait([
       if (_camera case final camera?) camera.close(),
       if (_detection case final detection?) detection.close(),

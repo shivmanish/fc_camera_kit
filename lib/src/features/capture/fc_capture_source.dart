@@ -1,8 +1,6 @@
-/// Where a photo comes from.
 enum FcCaptureSource {
-  /// A new photo from the kit's in-app camera.
+  /// The kit's in-app camera, never the system camera app.
   camera,
 
-  /// The system photo picker.
   gallery,
 }

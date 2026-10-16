@@ -29,7 +29,7 @@ void main() {
     wasCompressed: true,
     quality: 85,
     stamped: false,
-    // The pipeline hands back the metadata it embedded.
+    // The pipeline returns the metadata it embedded.
     metadata: metadata,
   );
   const stamp = FcStampSpec(

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'section_card.dart';
 import 'stamp_viewer.dart';
 
-/// A labelled, horizontally scrolling row of image thumbnails.
+/// Labelled, horizontally scrolling thumbnail row.
 class ImageStripCard extends StatelessWidget {
   const ImageStripCard({
     required this.label,
@@ -77,10 +77,9 @@ class _Thumb extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          // Decode at tile size, not the full photo.
+          // Decode at tile size.
           cacheWidth: cacheSize,
-          // Every result writes a new path; keying on it stops Flutter
-          // serving a previous image from its cache.
+          // Keyed on the fresh path so a stale cached image is not shown.
           key: ValueKey(path),
           errorBuilder: (_, _, _) => SizedBox(
             width: size,

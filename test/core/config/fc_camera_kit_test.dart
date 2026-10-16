@@ -25,8 +25,8 @@ void main() {
   });
 
   group('init', () {
-    // Platform lookups must never block init() off-device: a host app's own
-    // widget tests call it, and an unanswered channel there waits forever.
+    // Off-device, init() must not wait on platform lookups:
+    // unanswered channels in host widget tests would hang.
     testWidgets('completes inside a widget test', (tester) async {
       var done = false;
       unawaited(
@@ -41,13 +41,13 @@ void main() {
     test('init keeps the app it is given, trimmed', () async {
       await FcCameraKit.instance.init(
         app: const FcApp(
-          name: '  SarvaSarathi COS  ',
+          name: '  FC Camera Kit Example  ',
           version: ' 2.17.6 ',
           environment: FcEnvironment.uat,
         ),
       );
       const trimmed = FcApp(
-        name: 'SarvaSarathi COS',
+        name: 'FC Camera Kit Example',
         version: '2.17.6',
         environment: FcEnvironment.uat,
       );
@@ -227,7 +227,7 @@ void main() {
     });
 
     test('detection failing never blocks init', () async {
-      // No plugin in a unit test, so the lookup throws and is swallowed.
+      // No plugin in unit tests: the lookup throws and is swallowed.
       await FcCameraKit.instance.init(app: fcTestApp);
 
       expect(FcCameraKit.instance.isInitialized, isTrue);

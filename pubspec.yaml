@@ -3,11 +3,8 @@ description: >-
   Capture, stamp, compress and scan photos with embedded who/when/where
   metadata. Feature-first clean architecture, Cubit driven, Android and iOS.
 version: 1.0.0
-repository: https://github.com/SarvagramHQ/fc_camera_kit
-issue_tracker: https://github.com/SarvagramHQ/fc_camera_kit/issues
 
-# This package is deliberately Android + iOS only. It reads `dart:io`
-# and leans on native codecs, so web/desktop are out of scope.
+# Android and iOS only: uses dart:io and native codecs.
 platforms:
   android:
   ios:
@@ -26,49 +23,38 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # State management
+  # State
   flutter_bloc: ^9.1.1
   equatable: ^3.0.0
 
-  # Gallery picks only; new photos come from the in-app camera below.
+  # Capture
   image_picker: ^1.2.2
-  # Live camera for face scan (features/camera). It merges RECORD_AUDIO into
-  # the host manifest; the kit never records audio, so hosts strip it with
-  # tools:node="remove" (see README).
-  # 0.11 allowed so hosts pinned to it (fc_custom_camera) resolve; 0.12 only
-  # adds video stabilisation, which the kit does not use.
+  # Merges RECORD_AUDIO into the host manifest; hosts remove it (see README).
   camera: ">=0.11.3 <0.13.0"
-  # Face box, eye-open probability, head pose, tracking. Requires iOS 15.5.
-  # Held below 0.15: 0.15 needs Dart 3.12 / Flutter 3.44, above our 3.35 floor.
-  # 0.13 allowed for the same hosts; 0.14 is a native rewrite, same Dart API.
+  # 0.15 needs Flutter 3.44, above the 3.35 floor.
   google_mlkit_face_detection: ">=0.13.1 <0.15.0"
+  cunning_document_scanner: ^3.0.3
 
   # Image pipeline
   flutter_image_compress: ^2.5.1
   native_exif: ^0.7.0
 
-  # Runtime permissions + location context
-  # Held at 12.x deliberately. permission_handler 13.x pulls
-  # permission_handler_android 14.x, whose build.gradle.kts requires AGP 9.0.1
-  # and Kotlin 2.3.20 — it fails to even compile on AGP 8. 12.0.1 resolves to
-  # permission_handler_android 13.0.1, which targets AGP 8.
+  # Permissions and location
+  # 13.x needs AGP 9; 12.x builds on AGP 8.
   permission_handler: ^12.0.1
-  # 13 allowed: same API, and host packages still pin ^13.
   geolocator: ">=13.0.2 <15.0.0"
-  # Below 5: host packages call its top-level functions, which 5.x removed.
-  # 4.x keeps them and only bumps build tooling.
+  # 5.x removed the top-level functions hosts still call.
   geocoding: ">=3.0.0 <5.0.0"
 
-  # Device / file / formatting utilities
+  # Utilities
   device_info_plus: ^12.4.0
   path_provider: ^2.1.5
   path: ^1.9.1
   cross_file: ^0.3.5+2
-  # 0.20.2: flutter_localizations in Flutter 3.35 pins exactly that.
+  # Flutter 3.35 flutter_localizations pins 0.20.2.
   intl: ^0.20.2
   meta: ^1.16.0
   dartz: ^0.10.1
-  cunning_document_scanner: ^3.0.3
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-/// Where a photo was taken. [address] is filled in only when reverse geocoding
-/// succeeds, so treat it as optional even when coordinates are present.
+/// Where a photo was taken; [address] is set only if geocoding succeeds.
 final class FcGeoLocation extends Equatable {
   const FcGeoLocation({
     required this.latitude,
@@ -13,28 +12,22 @@ final class FcGeoLocation extends Equatable {
     this.isMocked = false,
   });
 
-  /// How a mocked fix is marked, on the stamp and in EXIF.
   static const mockedMark = '(MOCKED)';
 
   final double latitude;
   final double longitude;
 
-  /// Radius of 68% confidence, as reported by the platform.
+  /// 68% confidence radius.
   final double? accuracyMeters;
   final double? altitudeMeters;
 
-  /// Human readable address from reverse geocoding.
   final String? address;
 
-  /// When the platform took this fix. Older than the photo when the last
-  /// known position stood in for a fresh one.
+  /// May predate the photo when a last-known position was used.
   final DateTime? fixedAt;
 
-  /// The platform reported the fix as coming from a mock-location app. The
-  /// photo is still taken; the stamp and EXIF carry [mockedMark].
   final bool isMocked;
 
-  /// Signed decimal pair, e.g. `18.520430, 73.856743`.
   String get coordinates =>
       '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
 

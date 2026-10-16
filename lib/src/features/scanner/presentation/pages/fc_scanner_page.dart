@@ -17,11 +17,8 @@ import '../cubits/fc_scanner_screen/fc_scanner_screen_state.dart';
 import '../widgets/fc_scan_error_view.dart';
 import '../widgets/fc_scan_preparing_view.dart';
 
-/// Opens the document scanner and turns the pages into finished files.
-///
-/// The page always closes itself when the scan ends and pops with the
-/// [FcScanResult], or `null` otherwise. Callbacks only notify; exactly one of
-/// them fires per scan.
+/// Document scanner screen; pops with the [FcScanResult], or `null`.
+/// Exactly one callback fires per scan.
 class FcScannerPage extends StatelessWidget {
   const FcScannerPage({
     this.maxPages,
@@ -40,14 +37,13 @@ class FcScannerPage extends StatelessWidget {
     super.key,
   });
 
-  /// Overrides for this scan; anything left `null` comes from `init()`.
+  /// `null` values fall back to `init()`.
   final int? maxPages;
   final FcScanSource? source;
   final FcScanEnhancement? enhancement;
   final bool? embedMetadata;
   final int? maxBytes;
 
-  /// Stamp settings, as in `capture()`; `null` ones come from `init()`.
   final bool? stamp;
   final StampPlacement? placement;
   final String? dateFormat;
@@ -55,10 +51,10 @@ class FcScannerPage extends StatelessWidget {
 
   final ValueChanged<FcScanResult>? onCompleted;
 
-  /// Also fires when the user closes the page after an error.
+  /// Also fires when the user closes after an error.
   final VoidCallback? onCancelled;
 
-  /// When `null`, the page shows the error with a retry instead.
+  /// If `null`, the error is shown with a retry.
   final ValueChanged<FcCameraFailure>? onFailed;
 
   final FcScanRepository? repository;
@@ -99,12 +95,11 @@ class _ScannerView extends StatelessWidget {
         final cubit = context.read<FcScannerScreenCubit>();
         final themed = state is FcScannerFailed || state is FcScannerStranded;
         return PopScope(
-          // Leaving mid-processing would strand half-written files.
+          // Blocks back while files are mid-write.
           canPop: state is! FcScannerActive || state.canPop,
           onPopInvokedWithResult: (didPop, _) =>
               cubit.systemBack(didPop: didPop),
           child: Scaffold(
-            // Dark while scanning and preparing; themed for error and finished.
             backgroundColor: themed ? null : Colors.black,
             body: AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
@@ -136,8 +131,7 @@ class _ScannerView extends StatelessWidget {
           onClose: cubit.cancel,
         ),
       ),
-      // One key for the whole flow: never swapped, so it never reads as a new
-      // screen; it only updates its image and text.
+      // One stable key, so the flow never looks like a new screen.
       _ => FcScanPreparingView(
         key: const ValueKey('fc-scan-preparing'),
         imagePath: progress?.preview.path,
@@ -175,7 +169,7 @@ class _ScannerView extends StatelessWidget {
     }
   }
 
-  /// On the next frame, so a host callback that already navigated wins.
+  /// Deferred a frame so a host callback that navigated wins.
   static void _closeRoute(BuildContext context, FcScanResult? result) {
     WidgetsBinding.instance
       ..addPostFrameCallback((_) {

@@ -3,11 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../config/fc_app.dart';
 import 'fc_geo_location.dart';
 
-/// Resolved who / when / where for one photo.
-///
-/// Built once per capture, then passed explicitly to the stamper and the EXIF
-/// writer — neither reads global state. Every field except [capturedAt] is
-/// optional, since location can time out and the user context may be unset.
+/// Who / when / where for one photo, passed to the stamp and EXIF steps.
 final class FcPhotoMetadata extends Equatable {
   const FcPhotoMetadata({
     required this.capturedAt,
@@ -23,12 +19,8 @@ final class FcPhotoMetadata extends Equatable {
     this.note,
   });
 
-  /// When the shutter fired. Store UTC if you need timezone-safe comparisons;
-  /// the stamp renders whatever you pass.
   final DateTime capturedAt;
 
-  /// Who — display name, stable id, role and branch, from the configured user
-  /// context.
   final String? userName;
   final String? userId;
   final String? userRole;
@@ -36,20 +28,15 @@ final class FcPhotoMetadata extends Equatable {
 
   final FcGeoLocation? location;
 
-  /// The handset maker, e.g. `Google`, for audit trails.
   final String? deviceMake;
 
-  /// The handset model, e.g. `Pixel 8 Pro`, for audit trails.
   final String? deviceModel;
 
-  /// The host app that used the kit: EXIF `Software` and a stamp line.
   final FcApp? app;
 
-  /// The photo's own id, 32 hex digits, also in EXIF `ImageUniqueID`. Set
-  /// when EXIF is written, one per file; `null` before that.
+  /// Set per file when EXIF is written; `null` before that.
   final String? imageId;
 
-  /// Free-form extra line, appended to the stamp.
   final String? note;
 
   bool get hasLocation => location != null;

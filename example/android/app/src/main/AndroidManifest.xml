@@ -35,7 +35,7 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
-        android:label="SG Camera Kit"
+        android:label="FC Camera Kit"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

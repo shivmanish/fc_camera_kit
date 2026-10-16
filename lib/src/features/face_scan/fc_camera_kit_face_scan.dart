@@ -12,7 +12,6 @@ import 'domain/repositories/fc_face_repository.dart';
 import 'presentation/pages/fc_face_scan_page.dart';
 
 extension FcCameraKitFaceScan on FcCameraKit {
-  /// Replace the device camera, ML Kit and the file pipeline in tests.
   @visibleForTesting
   static FcLiveCamera? debugCamera;
   @visibleForTesting
@@ -20,12 +19,8 @@ extension FcCameraKitFaceScan on FcCameraKit {
   @visibleForTesting
   static FcFaceRepository? debugRepository;
 
-  /// Frames the user's face, checks for a blink and returns the selfie.
-  /// Never throws.
-  ///
-  /// Arguments left `null` come from `init(...)`; the stamp ones match
-  /// `capture()` and `scan()`. A call made while one runs gets that run's
-  /// result instead of opening a second one.
+  /// Face scan: framed selfie with blink liveness; never throws.
+  /// A call made mid-scan gets the running scan's result.
   Future<FcResult<FcFaceResult>> scanFace(
     BuildContext context, {
     int? blinks,

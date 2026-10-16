@@ -475,9 +475,7 @@ liveness and face match.
 
 ---
 
-## 9. From the reference implementation
-
-Reference: `sarvagram_dev/lib/src/presentation/organisms/document_scanner`, read in full.
+## 9. From an earlier in-house scanner
 
 **Kept (good ideas):**
 - custom camera with document border hint, torch, pinch zoom, level indicator from the accelerometer

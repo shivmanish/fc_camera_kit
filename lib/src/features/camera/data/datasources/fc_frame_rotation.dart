@@ -1,10 +1,6 @@
 import '../../domain/entities/fc_camera_frame.dart';
 
-/// Clockwise degrees that turn a raw frame upright, from ML Kit's recipe.
-///
-/// iOS frames already follow the sensor; Android ones also need the device
-/// rotation, added for the front lens (it is mirrored) and subtracted for
-/// the back one.
+/// Android adds device rotation for the mirrored front lens, else subtracts.
 int fcFrameRotation({
   required bool isIOS,
   required int sensorOrientation,

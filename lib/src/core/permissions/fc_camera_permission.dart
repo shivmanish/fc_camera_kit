@@ -5,10 +5,6 @@ import '../error/fc_camera_failure.dart';
 import '../utils/fc_result.dart';
 import 'fc_permission_status.dart';
 
-/// Camera permission, via `permission_handler`.
-///
-/// Unlike location there is no device-wide service toggle, so the state space
-/// stops at granted / denied / permanently denied.
 final class FcCameraPermission {
   FcCameraPermission._();
 
@@ -19,16 +15,12 @@ final class FcCameraPermission {
     return _instance!;
   }
 
-  /// Current status, without prompting.
-  ///
-  /// Android never reports [FcPermissionStatus.deniedForever] here — the OS has
-  /// no API for it. Only [askCameraPermission] can tell the two apart.
+  /// Android only reports a permanent denial after [askCameraPermission].
   Future<FcPermissionStatus> status() async =>
       mapStatus(await ph.Permission.camera.status);
 
   Future<bool> hasPermission() async => (await status()).isUsable;
 
-  /// Grants-or-asks. Does not re-prompt when permission is already held.
   Future<FcResult<FcPermissionStatus>> askCameraPermission() async {
     var current = await status();
 

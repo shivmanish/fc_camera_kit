@@ -6,15 +6,14 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'section_card.dart';
 
-/// Live permission state, plus the one call a host app really makes.
+/// Live permission status and the single gate call a host app makes.
 class AccessCard extends StatelessWidget {
   const AccessCard({super.key});
 
   Future<void> _runGate(BuildContext context) async {
     final cubit = context.read<HomeCubit>();
 
-    // This single call is the whole integration: check, explain, request,
-    // recover from a permanent denial, then confirm location services.
+    // Checks, explains, requests, handles denial, then location services.
     await FcPermissionGate.ensure(context);
     await cubit.refreshAccess();
   }

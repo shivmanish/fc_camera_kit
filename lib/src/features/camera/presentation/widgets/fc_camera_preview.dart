@@ -3,8 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../data/datasources/fc_live_camera.dart';
 import '../../domain/entities/fc_face_frame_geometry.dart';
 
-/// The live preview filling its box without stretching: scaled to cover and
-/// cropped, keeping the sensor's real proportions in either orientation.
+/// Cover-fit live preview that keeps the sensor's true proportions.
 class FcCameraPreview extends StatelessWidget {
   const FcCameraPreview({
     required this.camera,
@@ -14,7 +13,7 @@ class FcCameraPreview extends StatelessWidget {
 
   final FcLiveCamera camera;
 
-  /// Width ÷ height of the sensor's frames (landscape, so above 1).
+  /// Landscape sensor ratio, so above 1.
   final double sensorAspect;
 
   @override

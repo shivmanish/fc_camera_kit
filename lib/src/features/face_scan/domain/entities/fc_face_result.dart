@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/image/metadata/fc_photo_metadata.dart';
 import 'fc_face_verdict.dart';
 
-/// A face box as fractions (0–1) of the upright photo.
+/// Face box as 0–1 fractions of the upright photo.
 final class FcFaceBox extends Equatable {
   const FcFaceBox({
     required this.left,
@@ -25,7 +25,7 @@ final class FcFaceBox extends Equatable {
   List<Object?> get props => [left, top, width, height];
 }
 
-/// Head rotation in degrees: yaw turns left/right, pitch nods, roll tilts.
+/// Degrees: yaw turns left/right, pitch nods, roll tilts.
 final class FcHeadPose extends Equatable {
   const FcHeadPose({this.yaw = 0, this.pitch = 0, this.roll = 0});
 
@@ -37,7 +37,6 @@ final class FcHeadPose extends Equatable {
   List<Object?> get props => [yaw, pitch, roll];
 }
 
-/// The finished selfie and everything known about it.
 final class FcFaceResult extends Equatable {
   const FcFaceResult({
     required this.file,
@@ -53,25 +52,22 @@ final class FcFaceResult extends Equatable {
     this.verdict,
   });
 
-  /// Unmirrored, upright JPEG under the size budget, in the app-private dir.
+  /// Unmirrored, upright and under the size budget.
   final XFile file;
   final int width;
   final int height;
   final int sizeBytes;
   final DateTime capturedAt;
 
-  /// The blink check passed for this capture.
   final bool livenessPassed;
   final FcFaceBox face;
   final FcHeadPose pose;
 
-  /// The who / when / where stamp is burned into [file].
   final bool stamped;
 
-  /// What was stamped or written to EXIF, when either was on.
   final FcPhotoMetadata? metadata;
 
-  /// The verifier's answer; `null` for offline scans.
+  /// `null` for offline scans.
   final FcFaceVerdict? verdict;
 
   double get sizeKb => sizeBytes / 1024;

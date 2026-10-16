@@ -10,24 +10,15 @@ import '../../../../core/error/fc_camera_exception.dart';
 import '../../../../core/image/fc_bmp_encoder.dart';
 import '../../domain/entities/fc_camera_frame.dart';
 
-/// Saves a frame as a photo; [FcFrameSnapshot.save] unless replaced.
 typedef FcFrameSaver =
     Future<XFile> Function(FcCameraFrame frame, {required bool mirror});
 
-/// Upright RGBA pixels of a camera frame.
 typedef FcFramePixels = ({Uint8List rgba, int width, int height});
 
-/// Turns an analysis frame into a photo file.
-///
-/// The photo is the very frame that was checked, so it can never miss what
-/// the check saw, unlike a separate shutter that fires a moment later.
+/// Saves the analysed frame itself, so the photo matches what was checked.
 abstract final class FcFrameSnapshot {
   static int _sequence = 0;
 
-  /// Converts off the UI isolate and writes a lossless BMP to the temp dir.
-  ///
-  /// [mirror] flips left–right, e.g. so a front-camera photo matches the
-  /// mirrored preview the user framed it in.
   static Future<XFile> save(FcCameraFrame frame, {bool mirror = false}) async {
     try {
       final bytes = await Isolate.run(() {
@@ -52,7 +43,6 @@ abstract final class FcFrameSnapshot {
     }
   }
 
-  /// Upright (rotated by the frame's rotation) and optionally mirrored RGBA.
   static FcFramePixels toRgba(FcCameraFrame frame, {bool mirror = false}) {
     final width = frame.uprightWidth;
     final height = frame.uprightHeight;
@@ -65,8 +55,7 @@ abstract final class FcFrameSnapshot {
     for (var y = 0; y < height; y++) {
       for (var x0 = 0; x0 < width; x0++) {
         final x = mirror ? width - 1 - x0 : x0;
-        // Where this upright pixel comes from in the sensor frame, for a
-        // clockwise rotation of the source by [rotation].
+        // Source pixel for this upright pixel under a clockwise rotation.
         final (sx, sy) = switch (rotation) {
           90 => (y, sourceHeight - 1 - x),
           180 => (sourceWidth - 1 - x, sourceHeight - 1 - y),
@@ -95,7 +84,7 @@ abstract final class FcFrameSnapshot {
         final uv = stride * frame.height + (y >> 1) * stride + (x & ~1);
         final v = bytes[uv] - 128;
         final u = bytes[uv + 1] - 128;
-        // JFIF full-range YUV → RGB, in 16.16 fixed point.
+        // Full-range YUV to RGB in 16.16 fixed point.
         out[o] = _clamp(luma + ((91881 * v) >> 16));
         out[o + 1] = _clamp(luma - ((22554 * u + 46802 * v) >> 16));
         out[o + 2] = _clamp(luma + ((116130 * u) >> 16));

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../presentation/molecules/fc_step_list.dart';
 import '../../domain/entities/fc_face_frame_status.dart';
 
-/// What sits above the circle: the message and a detail line.
 class FcFaceFrameHint extends StatelessWidget {
   const FcFaceFrameHint({required this.status, super.key});
 
@@ -50,8 +49,6 @@ class FcFaceFrameHint extends StatelessWidget {
   }
 }
 
-/// What sits under the circle: the steps of a running job, and the buttons
-/// once a flow has stopped.
 class FcFaceFramePanel extends StatelessWidget {
   const FcFaceFramePanel({
     required this.status,

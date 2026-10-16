@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Face scan defaults, set once through `FcCameraKit.init(faceScan: ...)`.
 final class FcFaceScanOptions extends Equatable {
   const FcFaceScanOptions({
     this.blinks = 1,
@@ -10,22 +9,16 @@ final class FcFaceScanOptions extends Equatable {
     this.mirrorSelfie = true,
   });
 
-  /// Blinks needed before the ring turns green. Must be positive.
   final int blinks;
 
-  /// Writes who / when / where into the selfie's EXIF.
   final bool embedMetadata;
 
-  /// Burns who / when / where onto the selfie, styled like `capture()`.
-  /// Off by default: a selfie for identity is usually kept clean.
   final bool stamp;
 
-  /// How long the ring stays green before the photo is taken by itself;
-  /// `Duration.zero` leaves it to the shutter button.
+  /// `Duration.zero` disables auto capture.
   final Duration autoCaptureAfter;
 
-  /// Saves the selfie as the user saw it in the mirrored preview. Off saves
-  /// it as others see the person, left and right swapped from the preview.
+  /// True saves the selfie as seen in the mirrored preview.
   final bool mirrorSelfie;
 
   FcFaceScanOptions copyWith({

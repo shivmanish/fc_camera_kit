@@ -33,9 +33,7 @@ void main() {
     });
 
     test('says nothing about the device location toggle', () {
-      // A granted permission is granted whether or not GPS is on. Folding the
-      // service into this enum made the gate open a permission sheet that
-      // could not fix a disabled service.
+      // Permission state is independent of whether GPS is switched on.
       for (final status in FcPermissionStatus.values) {
         expect(status.name, isNot(contains('service')));
       }

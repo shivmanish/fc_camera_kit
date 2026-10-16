@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 
 import 'fc_face_result.dart';
 
-/// One face in one camera frame.
 base class FcFaceObservation extends Equatable {
   const FcFaceObservation({
     required this.box,
@@ -15,11 +14,11 @@ base class FcFaceObservation extends Equatable {
   final FcFaceBox box;
   final FcHeadPose pose;
 
-  /// 0–1; `null` when the detector couldn't classify that eye.
+  /// 0–1, or `null` when that eye couldn't be classified.
   final double? leftEyeOpen;
   final double? rightEyeOpen;
 
-  /// Same value across frames while the same face stays in view.
+  /// Stable while the same face stays in view.
   final int? trackingId;
 
   @override

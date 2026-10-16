@@ -25,15 +25,8 @@ import '../fc_capture_result.dart';
 import '../fc_capture_source.dart';
 import '../fc_image_source.dart';
 
-/// Owns everything from opening the camera or picker to handing back the
-/// finished file.
-///
-/// It is pushed **before** the camera or picker opens, on purpose: whatever
-/// sits underneath is what the user sees the instant either closes, and
-/// pushing afterwards would flash the host app's screen in between.
-///
-/// Pops with an [FcCaptureResult] on success or an [FcCameraFailure] otherwise,
-/// so the caller awaits one value.
+/// Pushed before the camera or picker opens so the host screen never flashes.
+/// Pops with an [FcCaptureResult] or an [FcCameraFailure].
 class FcProcessingScreen extends StatelessWidget {
   const FcProcessingScreen({
     required this.source,
@@ -48,10 +41,8 @@ class FcProcessingScreen extends StatelessWidget {
 
   final FcCaptureSource source;
 
-  /// Replaces the gallery picker.
   final FcImageSource? imageSource;
 
-  /// Replaces the device camera behind the in-app camera, in tests.
   final FcLiveCamera? liveCamera;
   final StampPlacement? placement;
   final String? dateFormat;
@@ -75,7 +66,6 @@ class FcProcessingScreen extends StatelessWidget {
   }
 }
 
-/// Stateful to run the sequence once on entry and to hold the picked file.
 class _ProcessingView extends StatefulWidget {
   const _ProcessingView({
     required this.source,
@@ -105,8 +95,7 @@ class _ProcessingViewState extends State<_ProcessingView> {
   @override
   void initState() {
     super.initState();
-    // After the first frame, so this route is mounted before the picker
-    // activity covers it.
+    // Post-frame so this route is mounted before the picker covers it.
     WidgetsBinding.instance.addPostFrameCallback((_) => _run());
   }
 
@@ -150,21 +139,17 @@ class _ProcessingViewState extends State<_ProcessingView> {
     } catch (error) {
       if (mounted) _close(UnknownFailure('$error'));
     } finally {
-      // The camera's raw shot is the kit's own temp file: once the finished
-      // copy exists, or the capture is abandoned, nothing reads it. A gallery
-      // pick is the picker's, so it is left alone.
+      // Only the camera's temp shot is ours to delete; gallery picks are left alone.
       if (raw != null && widget.source == FcCaptureSource.camera) {
         unawaited(FcImageStore.deleteQuietly(raw.file.path));
       }
     }
   }
 
-  /// The photo and its crop and turn, or `null` when the user backs out.
   Future<FcReviewedPhoto?> _pick() async {
     switch (widget.source) {
       case FcCaptureSource.camera:
-        // Not animated: this black screen is covered in the same frame, so
-        // the user sees one transition, in and out.
+        // Not animated: this screen is covered in the same frame.
         return FcNavigator.push<FcReviewedPhoto>(
           context,
           (_) => FcPhotoCameraPage(camera: widget.liveCamera),
@@ -176,12 +161,11 @@ class _ProcessingViewState extends State<_ProcessingView> {
     }
   }
 
-  /// Only fatal because `requireLocation` says so — that flag exists to choose
-  /// between no photo and a photo with no location.
+  /// Fatal only when `requireLocation` is set.
   Future<FcResult<FcGeoLocation?>> _resolveLocation(FcCameraKit kit) async {
     if (!kit.requireLocation) return fcSuccess(null);
 
-    // The gate already cleared permission; do not prompt a second time.
+    // The gate already cleared permission; don't prompt again.
     final result = await FcLocationPermission.instance.getCurrentLocation(
       resolveAddress: true,
       requestIfNeeded: false,
@@ -197,16 +181,14 @@ class _ProcessingViewState extends State<_ProcessingView> {
     final picked = _picked;
 
     return PopScope(
-      // Leaving mid-pipeline would strand a half-written file.
+      // Block back mid-pipeline so no half-written file is left.
       canPop: false,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Nothing to show until the camera or picker returns; it covers
-            // this screen anyway. Then the photo as the user left it: cropped
-            // and turned.
+            // Blank until the camera or picker returns, then the cropped, turned photo.
             if (picked != null) ...[
               FcResolvedImage(
                 image: FileImage(File(picked.file.path)),
@@ -240,9 +222,7 @@ class _Progress extends StatelessWidget {
     return BlocBuilder<FcStampCubit, FcStampState>(
       buildWhen: (previous, current) => current is FcStampProcessing,
       builder: (context, state) {
-        // Before the first stage lands, show the first step as already running.
-        // The pipeline always starts there, so a separate "preparing" title
-        // would flash for a few frames and say nothing.
+        // Show the first step as running at once; a "preparing" title would only flash.
         final stage = state is FcStampProcessing
             ? state.stage
             : FcStampStage.values.first;
@@ -260,8 +240,7 @@ class _Progress extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // Names the running step. Cross-faded, because it changes three
-            // times and a hard swap reads as a glitch.
+            // Cross-faded: a hard swap between steps reads as a glitch.
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
               child: Text(

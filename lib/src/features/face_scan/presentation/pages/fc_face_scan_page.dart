@@ -20,15 +20,10 @@ import '../../domain/repositories/fc_face_repository.dart';
 import '../cubits/fc_face_scan_screen/fc_face_scan_screen_cubit.dart';
 import '../cubits/fc_face_scan_screen/fc_face_scan_screen_state.dart';
 
-/// Asks for the permissions a scan needs; `true` when all are granted.
 typedef FcPermissionEnsurer =
     Future<bool> Function(BuildContext context, Set<FcPermissionType> required);
 
-/// Frames the user's face, checks for a blink, takes the selfie and turns it
-/// into an [FcFaceResult].
-///
-/// The page closes itself when the flow ends and pops with the result, or
-/// `null` otherwise. Exactly one callback fires per scan.
+/// Face scan page; pops with the result or `null`, firing exactly one callback.
 class FcFaceScanPage extends StatelessWidget {
   const FcFaceScanPage({
     this.blinks,
@@ -49,22 +44,20 @@ class FcFaceScanPage extends StatelessWidget {
     super.key,
   });
 
-  /// Overrides for this scan; anything left `null` comes from `init()`.
+  /// `null` fields fall back to `init()`.
   final int? blinks;
   final int? maxBytes;
   final bool? embedMetadata;
 
-  /// Stamp settings, as in `capture()` and `scan()`.
   final bool? stamp;
   final StampPlacement? placement;
   final String? dateFormat;
   final FcStampStyle style;
 
-  /// Green this long takes the photo by itself; `Duration.zero` leaves it to
-  /// the shutter button.
+  /// Auto-capture delay; `Duration.zero` leaves it to the shutter.
   final Duration? autoCaptureAfter;
 
-  /// Saves the selfie as seen in the mirrored preview.
+  /// Save the selfie as seen in the mirrored preview.
   final bool? mirrorSelfie;
 
   final ValueChanged<FcFaceResult>? onCompleted;
@@ -72,20 +65,16 @@ class FcFaceScanPage extends StatelessWidget {
   /// Also fires when the user closes the page.
   final VoidCallback? onCancelled;
 
-  /// Fires when the user closes the page after a failure; without it, a
-  /// failure is reported as a cancel.
+  /// Fires on close after a failure; without it a failure reports as a cancel.
   final ValueChanged<FcCameraFailure>? onFailed;
 
-  /// Test seams: the device camera, ML Kit and the file pipeline.
   final FcLiveCamera? camera;
   final FcFaceDetector? detector;
   final FcFaceRepository? repository;
 
-  /// Replaces the permission sheet in tests.
   @visibleForTesting
   static FcPermissionEnsurer? debugPermissionGate;
 
-  /// Replaces saving the camera frame as a photo in tests.
   @visibleForTesting
   static FcFrameSaver? debugSaveFrame;
 
@@ -127,7 +116,7 @@ class _FaceScanView extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<FcFaceScanScreenCubit>();
         return PopScope(
-          // Leaving mid-processing would strand half-written files.
+          // Block back mid-processing so no half-written file is left.
           canPop: state is! FcFaceScanActive || state.canPop,
           onPopInvokedWithResult: (didPop, _) =>
               cubit.systemBack(didPop: didPop),
@@ -166,7 +155,7 @@ class _FaceScanView extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Tell the cubit the size the oval is drawn for; it ignores repeats.
+        // Report the oval's size to the cubit; repeats are ignored.
         final size = constraints.biggest;
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => cubit.layoutChanged(size),
@@ -212,7 +201,7 @@ class _FaceScanView extends StatelessWidget {
     }
   }
 
-  /// On the next frame, so a host callback that already navigated wins.
+  /// Next frame, so a host callback that already navigated wins.
   static void _closeRoute(BuildContext context, FcFaceResult? result) {
     WidgetsBinding.instance
       ..addPostFrameCallback((_) {

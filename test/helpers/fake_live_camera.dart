@@ -7,21 +7,20 @@ import 'package:fc_camera_kit/src/features/camera/data/datasources/fc_live_camer
 import 'package:fc_camera_kit/src/features/camera/domain/entities/fc_camera_frame.dart';
 import 'package:flutter/widgets.dart';
 
-/// Records every call; [opening] and [taking] let a test hold `open()` and
-/// `takePicture()` mid-flight.
+/// Fake camera that records calls.
+/// [opening] and [taking] let a test hold `open()` and `takePicture()`.
 final class FakeLiveCamera implements FcLiveCamera {
   Completer<void>? opening;
   Completer<void>? taking;
   Object? openError;
   Object? takeError;
 
-  /// Thrown by `setFlash`, as a camera with no flash does.
+  /// Thrown by `setFlash`, like a camera without a flash.
   Object? flashError;
   final calls = <String>[];
   void Function(FcCameraFrame frame)? listener;
   bool streaming = false;
 
-  /// The flash's last setting; `null` until set.
   FcFlashMode? flash;
 
   @override
@@ -30,10 +29,8 @@ final class FakeLiveCamera implements FcLiveCamera {
   @override
   double maxZoom = 1;
 
-  /// The last zoom level set; `null` until set.
   double? zoom;
 
-  /// What the last `open()` asked for.
   FcCameraResolution? resolution;
   FcCameraLens _lens = FcCameraLens.front;
 
@@ -43,7 +40,6 @@ final class FakeLiveCamera implements FcLiveCamera {
   @override
   FcCameraLens get lens => _lens;
 
-  /// The last orientation the camera was locked to.
   bool? lockedLandscape;
 
   @override
@@ -112,7 +108,7 @@ final class FakeLiveCamera implements FcLiveCamera {
     streaming = false;
   }
 
-  /// A bright frame, so the "too dark" check passes.
+  /// Bright enough to pass the low-light check.
   void emitFrame() => listener?.call(
     FcCameraFrame(
       bytes: Uint8List(64 * 64 * 3 ~/ 2)..fillRange(0, 64 * 64, 160),

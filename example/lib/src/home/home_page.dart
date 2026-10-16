@@ -30,12 +30,7 @@ class HomePage extends StatelessWidget {
 class _HomeView extends StatelessWidget {
   const _HomeView();
 
-  /// The entire integration, in one call.
-  ///
-  /// No `source` is passed, so the package shows its own chooser, asks only
-  /// for the permissions that source actually needs, captures, stamps,
-  /// compresses and embeds metadata before handing back the file. The example
-  /// runs no permission logic of its own.
+  /// No `source`, so the kit shows its chooser and asks only what it needs.
   Future<void> _capture(BuildContext context) async {
     final cubit = context.read<HomeCubit>();
     cubit.captureStarted();
@@ -44,9 +39,7 @@ class _HomeView extends StatelessWidget {
 
     cubit.captureFinished(result);
 
-    // Straight into the viewer on success: the point of a capture is the
-    // stamp, and a thumbnail is too small to show it. Closing lands back here
-    // with the photo added to the strip.
+    // Open the viewer at once; a thumbnail is too small to read the stamp.
     final capture = result.valueOrNull;
     if (capture != null && context.mounted) {
       await openStampViewer(context, capture.file.path);
@@ -55,9 +48,6 @@ class _HomeView extends StatelessWidget {
     await cubit.refreshAccess();
   }
 
-  /// Scanning is also one call: the platform scanner finds the edges,
-  /// auto-captures, crops and filters; the kit compresses, embeds metadata and
-  /// hands back the finished pages.
   Future<void> _scan(BuildContext context) async {
     final cubit = context.read<HomeCubit>();
     cubit.captureStarted();
@@ -70,8 +60,6 @@ class _HomeView extends StatelessWidget {
     cubit.scanFinished(result);
   }
 
-  /// Face scan too: frame, blink, shutter. The kit checks liveness, prepares
-  /// the selfie and hands it back.
   Future<void> _scanFace(BuildContext context) async {
     final cubit = context.read<HomeCubit>();
     cubit.captureStarted();
@@ -100,13 +88,13 @@ class _HomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SG Camera Kit'),
+        title: const Text('FC Camera Kit'),
         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
         ),
       ),
-      // Disabled while a flow runs, so a double tap cannot start two.
+      // Disabled mid-flow so a double tap cannot start a second one.
       bottomNavigationBar: BlocBuilder<HomeCubit, HomeState>(
         buildWhen: (previous, current) =>
             previous.capturing != current.capturing,
@@ -139,7 +127,7 @@ class _HomeView extends StatelessWidget {
           ),
         ],
         child: const SingleChildScrollView(
-          // Bottom padding clears the extended FAB.
+          // Leaves room for the extended FAB.
           padding: EdgeInsets.fromLTRB(20, 16, 20, 100),
           child: Column(
             children: [

@@ -11,10 +11,7 @@ import '../../../domain/repositories/fc_face_detector.dart';
 import '../../../domain/usecases/fc_evaluate_face.dart';
 import 'fc_face_detection_state.dart';
 
-/// Camera frames in, red or green out.
-///
-/// One frame is analysed at a time; frames arriving meanwhile are dropped,
-/// so detection can never queue up behind the camera.
+/// Judges one frame at a time; frames arriving meanwhile are dropped so none queue.
 class FcFaceDetectionCubit
     extends FcCubit<FcFaceDetectionState, FcFaceCheck, FcCameraFrame> {
   FcFaceDetectionCubit({
@@ -34,12 +31,10 @@ class FcFaceDetectionCubit
   FcFaceObservation? _face;
   FcCameraFrame? _readyFrame;
 
-  /// The face that made the ring green; `null` unless ready.
   FcFaceObservation? get readyFace =>
       state is FcFaceDetectionReady ? _face : null;
 
-  /// The last frame that passed every check, with its face; `null` unless
-  /// ready. Becomes the photo, so the photo is exactly what was checked.
+  /// Last fully passing frame; it becomes the photo, so the photo is what was checked.
   ({FcCameraFrame frame, FcFaceObservation face})? get readySnapshot {
     final frame = _readyFrame;
     final face = readyFace;
@@ -52,13 +47,10 @@ class FcFaceDetectionCubit
     unawaited(_analyse(frame));
   }
 
-  /// Where the oval now is in the camera frame.
   void setTarget(FcFaceBox target) => _evaluate.target = target;
 
-  /// Stops judging frames, e.g. while the taken photo is processed.
   void pause() => _paused = true;
 
-  /// Starts again from scratch: a fresh blink is needed.
   void resume() {
     _paused = false;
     _evaluate.reset();
@@ -69,7 +61,7 @@ class FcFaceDetectionCubit
 
   Future<void> _analyse(FcCameraFrame frame) async {
     try {
-      // A detection that never answers must not freeze the ring on red.
+      // A hung detection must not freeze the ring on red.
       final faces = await _detector.detect(frame).timeout(_detectTimeout);
       if (_paused || isClosed) return;
 
@@ -82,7 +74,7 @@ class FcFaceDetectionCubit
             : FcFaceDetectionSearching(check.hint),
       );
     } catch (_) {
-      // A frame the detector couldn't read is skipped, not fatal.
+      // Unreadable frames are skipped, not fatal.
     } finally {
       _busy = false;
     }

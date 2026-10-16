@@ -1,20 +1,12 @@
 import 'dart:math';
 import 'dart:ui';
 
-/// Where the face oval sits for a given screen, and where that lands in the
-/// camera frame. One definition read by both the UI that draws the oval and
-/// the rules that judge whether a face is inside it.
+/// Face oval on screen and in the frame; shared by drawing and face checks.
 abstract final class FcFaceFrameGeometry {
-  /// Height ÷ width of the oval: a face is taller than it is wide.
+  /// Height / width.
   static const double faceAspect = 1.3;
 
-  /// The oval for a screen of [size].
-  ///
-  /// Portrait: centred, sized from the width so a face fills it at a normal
-  /// arm's length, but never taller than 54 % of the screen, so the hint
-  /// above and the shutter below keep their room on short phones and the
-  /// oval doesn't balloon on tablets. Landscape: on the left, the controls
-  /// beside it on the right.
+  /// Portrait height capped at 54% to leave room for hint and shutter.
   static Rect ovalFor(Size size) {
     if (size.isEmpty) return Rect.zero;
 
@@ -45,18 +37,11 @@ abstract final class FcFaceFrameGeometry {
     );
   }
 
-  /// Width ÷ height of the preview as the user sees it.
-  ///
-  /// Camera plugins report the sensor's landscape ratio; held upright it
-  /// flips.
+  /// Plugins report the landscape sensor ratio; portrait inverts it.
   static double uprightAspect(double sensorAspect, {required bool landscape}) =>
       landscape ? sensorAspect : 1 / sensorAspect;
 
-  /// The oval as fractions (0–1) of the upright camera frame, when that frame
-  /// is shown cover-fit, centred, on a screen of [size].
-  ///
-  /// [mirrored] for the front camera: its preview is a mirror image, so what
-  /// sits on the screen's left is on the frame's right.
+  /// Oval as 0–1 fractions of the cover-fit frame; [mirrored] flips x.
   static Rect ovalInFrame(
     Size size,
     double uprightAspect, {
@@ -64,7 +49,7 @@ abstract final class FcFaceFrameGeometry {
   }) {
     if (size.isEmpty || uprightAspect <= 0) return Rect.zero;
 
-    // Cover-fit: scale until both sides fill, then crop the overflow evenly.
+    // Cover-fit: scale to fill both sides, crop overflow evenly.
     final scale = max(size.width / uprightAspect, size.height);
     final shownWidth = uprightAspect * scale;
     final shownHeight = scale;

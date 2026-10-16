@@ -88,7 +88,7 @@ void main() {
         return answer();
       });
 
-  // Spinners never settle, so advance time in fixed steps instead.
+  // Spinners never settle; pump fixed steps instead.
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
@@ -99,7 +99,7 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(360, 780),
   }) {
-    // A real phone in portrait by default.
+    // Defaults to a portrait phone screen.
     tester.view
       ..physicalSize = size * 3
       ..devicePixelRatio = 3;
@@ -132,7 +132,7 @@ void main() {
     onFailed: onFailed,
   );
 
-  /// Shows an open face, closes the eyes, opens them: a blink.
+  /// Open face, eyes closed, open again: one blink.
   Future<void> blink(
     WidgetTester tester, {
     FcFaceBox target = FcFaceRules.defaultTarget,
@@ -403,7 +403,7 @@ void main() {
       await pumpHost(tester, size: size);
       unawaited(open(page(stamp: true)));
       await settle(tester);
-      // The oval this screen draws, mapped into the frame like the cubit does.
+      // Screen oval mapped into frame space, as the cubit maps it.
       final oval = FcFaceFrameGeometry.ovalInFrame(
         size,
         FcFaceFrameGeometry.uprightAspect(

@@ -87,8 +87,8 @@ void main() {
       await tester.tap(find.text('go'));
       await tester.pumpAndSettle();
 
-      // gallery + requireLocation:false asks for nothing, so the flow reaches
-      // the picker directly and the throw must surface as a failure.
+      // Gallery without location needs no permissions,
+      // so the picker's throw must surface as a failure.
       expect(result.failureOrNull, isA<CameraFailure>());
     });
 
@@ -148,7 +148,7 @@ void main() {
   });
 }
 
-/// Fails the way a broken platform channel does.
+/// Throws like a broken platform channel.
 class _ThrowingSource extends FcImageSource {
   @override
   Future<XFile?> pick() async {
@@ -156,7 +156,7 @@ class _ThrowingSource extends FcImageSource {
   }
 }
 
-/// Mimics the user backing out of the picker.
+/// Simulates the user cancelling the picker.
 class _CancellingSource extends FcImageSource {
   @override
   Future<XFile?> pick() async => null;

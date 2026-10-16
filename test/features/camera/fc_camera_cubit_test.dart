@@ -278,7 +278,7 @@ void main() {
         await cubit.zoomBy(2);
         expect(camera.zoom, 2);
 
-        // A second pinch carries on from 2×.
+        // The second pinch continues from 2×.
         cubit.beginZoom();
         await cubit.zoomBy(1.5);
         expect(camera.zoom, 3);
@@ -384,7 +384,7 @@ void main() {
       final shot = cubit.capture();
       expect(ready(cubit).capturing, isTrue);
 
-      // Neither the lens nor the flash may change under a photo.
+      // Lens and flash stay fixed while a photo is taken.
       await cubit.switchLens();
       await cubit.cycleFlash();
       expect(camera.calls.where((c) => c == 'open'), hasLength(1));

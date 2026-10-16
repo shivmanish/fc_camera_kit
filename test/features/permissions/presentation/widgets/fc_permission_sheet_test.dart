@@ -120,8 +120,7 @@ void main() {
       );
       await tester.pump();
 
-      // The blocked one swaps its reason line for an actionable hint; the
-      // merely-denied one keeps its reason.
+      // Blocked shows an actionable hint; merely denied keeps its reason.
       expect(find.text('Blocked — enable in Settings'), findsOneWidget);
       expect(find.text(FcPermissionType.location.reason), findsOneWidget);
       expect(find.text(FcPermissionType.camera.reason), findsNothing);
@@ -184,8 +183,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(FcCloseButton), findsNothing);
-      // The grabber stays: it marks the surface as a sheet regardless of
-      // whether this particular one can be dismissed.
+      // The grabber shows even on a non-dismissible sheet.
       expect(find.byType(FcSheetGrabber), findsOneWidget);
     });
   });

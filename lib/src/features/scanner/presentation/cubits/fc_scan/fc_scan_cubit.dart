@@ -10,10 +10,9 @@ import '../../../domain/entities/fc_scan_stamp.dart';
 import '../../../domain/repositories/fc_scan_repository.dart';
 import 'fc_scan_state.dart';
 
-/// The scanner's name for the shared metadata resolver.
 typedef FcScanMetadataResolver = FcMetadataResolver;
 
-/// Scan → process every page → one result. Always ends in success or error.
+/// Scans, processes every page, and ends in one success or error.
 class FcScanCubit extends FcCubit<FcScanState, FcScanResult, FcScanOptions> {
   FcScanCubit({FcScanRepository? repository})
     : _repository = repository ?? FcScanRepositoryImpl(),
@@ -57,7 +56,7 @@ class FcScanCubit extends FcCubit<FcScanState, FcScanResult, FcScanOptions> {
       if (metadata.isLeft()) return await _fail(metadata.failureOrNull!);
 
       for (var i = 0; i < raws.length; i++) {
-        // Nobody is waiting any more; leave nothing on disk.
+        // No one is listening; delete everything.
         if (isClosed) return await _repository.discard(pages: pages);
 
         safeEmit(progress(i));
@@ -78,12 +77,12 @@ class FcScanCubit extends FcCubit<FcScanState, FcScanResult, FcScanOptions> {
       await _repository.clearCache();
       safeEmit(FcScanSuccess(FcScanResult(List.unmodifiable(pages))));
     } catch (error) {
-      // Platform calls inside the resolver can throw; never strand the UI.
+      // Resolver platform calls can throw; keep the UI from hanging.
       await _fail(UnknownFailure('Scan failed unexpectedly: $error'), pages);
     }
   }
 
-  /// Ends in an error state; for failures raised outside the cubit.
+  /// For failures raised outside the cubit.
   void fail(FcCameraFailure failure) => safeEmit(FcScanError(failure));
 
   Future<void> _fail(
@@ -93,7 +92,7 @@ class FcScanCubit extends FcCubit<FcScanState, FcScanResult, FcScanOptions> {
     try {
       await _repository.discard(pages: produced);
     } catch (_) {
-      // Cleanup is best effort; the error state below must still land.
+      // Best effort; the error state must still be emitted.
     }
     safeEmit(FcScanError(failure));
   }

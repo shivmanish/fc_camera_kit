@@ -6,7 +6,7 @@ import '../home_state.dart';
 import 'section_card.dart';
 import 'user_sheet.dart';
 
-/// The "who" half of the stamp: whatever `FcCameraKit.setUser` was last given.
+/// Who gets stamped: the last user passed to `FcCameraKit.setUser`.
 class IdentityCard extends StatelessWidget {
   const IdentityCard({super.key});
 

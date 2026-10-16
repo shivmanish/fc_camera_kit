@@ -6,12 +6,11 @@ import 'package:path_provider/path_provider.dart';
 
 import '../error/fc_camera_exception.dart';
 
-/// Saves processed images where they survive an upload retry.
+/// Persists processed images so they outlive an upload retry.
 abstract final class FcImageStore {
   static int _sequence = 0;
 
-  /// Writes into the app documents directory, not temp: the OS may purge temp
-  /// at any moment.
+  // Documents dir, not temp: the OS may purge temp at any time.
   static Future<File> save(Uint8List bytes) async {
     try {
       final directory = Directory(
@@ -22,7 +21,7 @@ abstract final class FcImageStore {
       );
       await directory.create(recursive: true);
 
-      // Sequence keeps names unique when several pages finish in the same ms.
+      // Counter avoids name clashes within the same millisecond.
       final name = 'fc_${DateTime.now().millisecondsSinceEpoch}_${_sequence++}';
       final file = File(p.join(directory.path, '$name.jpg'));
       await file.writeAsBytes(bytes, flush: true);
@@ -40,7 +39,7 @@ abstract final class FcImageStore {
     try {
       await File(path).delete();
     } catch (_) {
-      // Already gone or not ours to delete; neither should fail the caller.
+      // Missing or locked files must not fail the caller.
     }
   }
 }

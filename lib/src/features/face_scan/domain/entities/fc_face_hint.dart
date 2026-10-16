@@ -1,4 +1,4 @@
-/// What to tell the user, in priority order: the first that applies wins.
+/// Ordered by priority: the first that applies wins.
 enum FcFaceHint {
   tooDark('Too dark, find more light'),
   noFace('Position your face in the circle'),

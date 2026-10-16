@@ -2,10 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import 'fc_face_result.dart';
 
-/// Thresholds for a face to count as framed, straight and live.
-///
-/// Framing is judged against [target]: the on-screen oval mapped into the
-/// camera frame, so the rule matches what the user sees on any screen.
+/// Face thresholds; framing is judged against the on-screen oval mapped into the frame.
 final class FcFaceRules extends Equatable {
   const FcFaceRules({
     this.blinks = 1,
@@ -23,8 +20,7 @@ final class FcFaceRules extends Equatable {
     this.graceAfterInvalid = const Duration(milliseconds: 700),
   });
 
-  /// A portrait phone's oval (4:3 sensor, cover-fit), used until the screen
-  /// reports its real one.
+  /// Portrait default (4:3 sensor, cover-fit) until the screen reports its oval.
   static const defaultTarget = FcFaceBox(
     left: 0.24,
     top: 0.25,
@@ -34,16 +30,14 @@ final class FcFaceRules extends Equatable {
 
   final int blinks;
 
-  /// The oval, as fractions of the upright camera frame.
+  /// Fractions of the upright camera frame.
   final FcFaceBox target;
   final double minLuminance;
 
-  /// How far the face centre may sit from the oval centre, as a fraction of
-  /// the oval's width (left–right) and height (up–down).
+  /// Max centre offset, as a fraction of the oval's width and height.
   final double centerTolerance;
 
-  /// Face width ÷ oval width: below [minFill] is too far, above [maxFill] too
-  /// close.
+  /// Face width ÷ oval width: below is too far, above too close.
   final double minFill;
   final double maxFill;
 
@@ -53,11 +47,10 @@ final class FcFaceRules extends Equatable {
   final double eyesOpenAbove;
   final double eyesClosedBelow;
 
-  /// Eyes must reopen within this to count as a blink, not eyes held shut.
+  /// Eyes must reopen within this, else they were just held shut.
   final Duration blinkWindow;
 
-  /// A face may be out of bounds this long (one jittery frame) before the
-  /// blink has to be done again.
+  /// Grace for a jittery out-of-bounds frame before the blink resets.
   final Duration graceAfterInvalid;
 
   FcFaceRules copyWith({FcFaceBox? target}) => FcFaceRules(

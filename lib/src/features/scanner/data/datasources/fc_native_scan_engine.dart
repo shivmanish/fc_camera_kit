@@ -7,7 +7,7 @@ import '../../../../core/permissions/fc_permission_type.dart';
 import '../../../../core/permissions/fc_permissions.dart';
 import 'fc_scan_engine.dart';
 
-/// ML Kit Document Scanner on Android, VisionKit on iOS.
+/// ML Kit on Android, VisionKit on iOS.
 final class FcNativeScanEngine implements FcScanEngine {
   FcNativeScanEngine({FcPermissions? permissions})
     : _permissions = permissions ?? FcPermissions.instance;
@@ -21,7 +21,7 @@ final class FcNativeScanEngine implements FcScanEngine {
         noOfPages: options.maxPages,
         scannerSource: _sourceOf(options.source),
         androidScannerMode: _modeOf(options.enhancement),
-        // iOS defaults to PNG; JPEG keeps memory and the compressor's work down.
+        // iOS defaults to PNG; JPEG is lighter to hold and compress.
         iosScannerOptions: IosScannerOptions(
           imageFormat: IosImageFormat.jpg,
           showFilterBar: options.enhancement != FcScanEnhancement.basic,
@@ -61,7 +61,7 @@ final class FcNativeScanEngine implements FcScanEngine {
     try {
       await CunningDocumentScanner.cleanCache();
     } catch (_) {
-      // Best effort; a stale cache file must never fail a finished scan.
+      // Best effort; cache cleanup must not fail a finished scan.
     }
   }
 

@@ -4,13 +4,9 @@ import 'dart:ui' as ui;
 import '../../error/fc_camera_exception.dart';
 import 'fc_photo_edit.dart';
 
-/// Applies an [FcPhotoEdit] to decoded pixels, on the GPU.
-///
-/// Quarter turns land exactly on the pixel grid, so nothing is resampled:
-/// the edited photo is the original's pixels, rearranged.
+/// Applies an [FcPhotoEdit] on the GPU; quarter turns never resample.
 abstract final class FcPhotoEditor {
-  /// [source] turned and cropped as [edit] says, or [source] itself when
-  /// there is nothing to do. The caller owns, and disposes, both.
+  /// May return [source] itself; the caller disposes both.
   static Future<ui.Image> apply(ui.Image source, FcPhotoEdit edit) async {
     if (edit.isNone) return source;
 
@@ -26,7 +22,7 @@ abstract final class FcPhotoEditor {
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder)..translate(-crop.left, -crop.top);
-    // Each turn pivots the photo back into the positive quadrant.
+    // Translate back into the positive quadrant after each turn.
     switch (edit.quarterTurns % 4) {
       case 1:
         canvas

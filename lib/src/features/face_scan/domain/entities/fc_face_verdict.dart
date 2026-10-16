@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// What a verifier decided about a selfie.
 final class FcFaceVerdict extends Equatable {
   const FcFaceVerdict.approved({this.data = const {}})
     : approved = true,
@@ -11,10 +10,10 @@ final class FcFaceVerdict extends Equatable {
 
   final bool approved;
 
-  /// Why it was rejected, for the user; `null` when approved.
+  /// User-facing reason; `null` when approved.
   final String? message;
 
-  /// Whatever the verifier returned, handed back untouched.
+  /// Raw verifier response, passed through.
   final Map<String, Object?> data;
 
   @override

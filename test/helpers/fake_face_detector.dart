@@ -6,8 +6,7 @@ import 'package:fc_camera_kit/src/features/face_scan/domain/entities/fc_face_res
 import 'package:fc_camera_kit/src/features/face_scan/domain/entities/fc_face_rules.dart';
 import 'package:fc_camera_kit/src/features/face_scan/domain/repositories/fc_face_detector.dart';
 
-/// A face centred in [target] (the default oval unless given), filling 75 %
-/// of its width.
+/// Face centred in [target] (default oval), 75 % of its width.
 FcFaceObservation framedFace({
   double eyes = 0.95,
   int trackingId = 1,
@@ -28,7 +27,7 @@ FcFaceObservation framedFace({
   );
 }
 
-/// Answers each detect() with [faces]; [gate] lets a test hold one open.
+/// Returns [faces] on each detect(); [gate] lets a test hold a call open.
 final class FakeFaceDetector implements FcFaceDetector {
   List<FcFaceObservation> faces = const [];
   Completer<void>? gate;

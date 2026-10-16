@@ -5,7 +5,7 @@ import 'package:fc_camera_kit/src/features/camera/domain/entities/fc_camera_fram
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  /// A BGRA frame whose pixel at (x, y) has red = its index in [labels].
+  /// BGRA frame where each pixel's red channel is its index in [labels].
   FcCameraFrame bgra(List<List<int>> rows, {int rotation = 0}) {
     final height = rows.length;
     final width = rows.first.length;
@@ -27,7 +27,7 @@ void main() {
     );
   }
 
-  /// The red channel of the result, as rows.
+  /// Red channel of the result, row by row.
   List<List<int>> reds(FcFramePixels pixels) => [
     for (var y = 0; y < pixels.height; y++)
       [
@@ -103,7 +103,7 @@ void main() {
   test('NV21 red chroma comes out red', () {
     const width = 2;
     const height = 2;
-    // Y = 76, V (Cr) = 255, U (Cb) = 85: pure red in full-range YUV.
+    // Pure red in full-range YUV: Y 76, Cr 255, Cb 85.
     final bytes = Uint8List.fromList([76, 76, 76, 76, 255, 85]);
     final pixels = FcFrameSnapshot.toRgba(
       FcCameraFrame(

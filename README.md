@@ -81,16 +81,16 @@ Two placements, selected by parameter:
 Lines, each dropped when empty:
 
 ```
-Aman Gupta  ·  222561  ·  BRO  ·  Baramati     (name · id · role · branch)
-16 Oct 2026, 04:12 PM
-Baner, Pune, Maharashtra, 411069, India  ·  (18.561310, 73.785456)
-Lenovo | TB328XU                               (only with includeDeviceInStamp)
-FC Camera Kit Example 1.0.0 (DEV)              (production shows the app name alone)
+Asha Verma  ·  EMP-2291  ·  Field Officer  ·  Baramati   (name · id · role · branch)
+16 Oct 2026, 04:56 PM
+Baner, Pune, Maharashtra, 411069, India  ·  (18.561326, 73.785459)
+Lenovo | TB328XU                                         (only with includeDeviceInStamp)
+FC Camera Kit Example 1.0.0 (DEV)                        (production shows the app name alone)
 ```
 
 | `StampPlacement.overlay` | `StampPlacement.extend` |
 |:---:|:---:|
-| <img src="doc/images/overlay_stamp_example.jpg" alt="Photo with the stamp drawn over its bottom edge" width="280"> | <img src="doc/images/extended_stamp_example.png" alt="Photo with the stamp on a strip below it" width="280"> |
+| <img src="doc/images/overlay_stamp_example.jpg" alt="Photo with the stamp drawn over its bottom edge" width="280"> | <img src="doc/images/extended_stamp_example.jpg" alt="Photo with the stamp on a strip below it" width="280"> |
 | Footer over the photo, aspect ratio kept | Strip below the photo, nothing hidden |
 
 A fix from a mock-location app is not refused: the location line ends in
@@ -105,7 +105,7 @@ sample capture:
 | Field | Group | Tag | Example | On stamp |
 |---|---|---|---|:---:|
 | App and build | IFD0 | `Software` | `FC Camera Kit Example 1.0.0 (DEV)` — production drops `(UAT)` / `(DEV)` | ✅ |
-| User | IFD0 | `Artist` | `Aman Gupta \| 222561 \| BRO \| Baramati` — `name \| id \| role \| branch`, empty parts left out | ✅ |
+| User | IFD0 | `Artist` | `Asha Verma \| EMP-2291 \| Field Officer \| Baramati` — `name \| id \| role \| branch`, empty parts left out | ✅ |
 | Capture time | Exif | `DateTimeOriginal` | `2026:10:15 18:33:57` — the shutter press | ✅ |
 | Digitized / modified | Exif / IFD0 | `DateTimeDigitized` / `DateTime` | `2026:10:15 18:33:57` — same moment | — |
 | Milliseconds | Exif | `SubSecTime` / `SubSecTimeOriginal` / `SubSecTimeDigitized` | `798` | — |
@@ -124,7 +124,7 @@ sample capture:
 
 `ImageWidth` / `ImageHeight` (stamp strip included) and `LightSource` (`0`)
 come from the encoder, not the kit. Two sample captures, with every tag as
-stored, are in [doc/Smart_Camera_Photo_Details.xlsx](doc/Smart_Camera_Photo_Details.xlsx).
+stored, are in [doc/photo_exif_details.xlsx](doc/photo_exif_details.xlsx).
 
 Text that is not ASCII (e.g. a Devanagari address) is left out of EXIF
 rather than written as `?`; the stamp still shows it. Altitude is not
@@ -570,7 +570,7 @@ House rules:
 
 - `flutter analyze` clean is the merge bar.
 - Every use case and every Cubit gets a test (`bloc_test` + `mocktail`).
-- Doc comments explain *why* and non-obvious behaviour. Restating the signature
-  in prose is noise — `public_member_api_docs` is deliberately off.
+- Comments stay short: one line per feature entry point, plus notes on
+  non-obvious logic and bug fixes. Names explain the rest.
 - Public API changes land with a `CHANGELOG.md` entry.
 

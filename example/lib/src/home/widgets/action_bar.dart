@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// The three flows, one tap each, sized to fit a 360 dp phone.
+/// The three demo flows, sized to fit a 360 dp phone.
 class ActionBar extends StatelessWidget {
   const ActionBar({
     super.key,

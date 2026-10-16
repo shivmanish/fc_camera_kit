@@ -6,7 +6,7 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'image_strip_card.dart';
 
-/// Every page scanned this session, newest first.
+/// Scanned pages from this session, newest first.
 class ScanCard extends StatelessWidget {
   const ScanCard({super.key});
 

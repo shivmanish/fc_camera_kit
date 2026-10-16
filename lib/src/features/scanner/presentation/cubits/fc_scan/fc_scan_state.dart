@@ -16,7 +16,6 @@ final class FcScanIdle extends FcScanState {
   const FcScanIdle();
 }
 
-/// The platform scanner is on screen.
 final class FcScanScanning extends FcScanState {
   const FcScanScanning();
 }
@@ -34,13 +33,11 @@ final class FcScanProcessing extends FcScanState {
   final int page;
   final int total;
 
-  /// The page being prepared, shown behind the progress.
   final XFile preview;
 
-  /// Every step this page goes through, in order.
   final List<FcScanStage> stages;
 
-  /// The running step; `null` before the first one starts.
+  /// `null` before the first step starts.
   final FcScanStage? stage;
 
   @override
@@ -56,7 +53,7 @@ final class FcScanSuccess extends FcScanState {
   List<Object?> get props => [result];
 }
 
-/// Includes the user backing out, as a `CancelledFailure`.
+/// Includes user cancel, as a `CancelledFailure`.
 final class FcScanError extends FcScanState {
   const FcScanError(this.failure);
 

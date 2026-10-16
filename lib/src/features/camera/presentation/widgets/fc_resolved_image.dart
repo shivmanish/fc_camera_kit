@@ -1,14 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-/// What is known about an image while it loads.
 typedef FcImageStatus = ({Size? size, bool failed});
 
-/// Resolves [image] and builds with its upright size in pixels: `null` while
-/// it loads, and `failed` when it can't be read.
-///
-/// The size comes from the decoded frame, so it already follows the photo's
-/// EXIF orientation, exactly as an `Image` shows it. The decode is shared with
-/// any `Image` of the same provider through the image cache.
+/// Size comes from the decoded frame, so it already honours EXIF orientation.
 class FcResolvedImage extends StatefulWidget {
   const FcResolvedImage({
     required this.image,
@@ -53,7 +47,7 @@ class _FcResolvedImageState extends State<FcResolvedImage> {
       info.image.width.toDouble(),
       info.image.height.toDouble(),
     );
-    // Only the size is needed here; the Image widget holds its own handle.
+    // Only the size is needed; the Image widget keeps its own handle.
     info.dispose();
     if (mounted && size != _size) setState(() => _size = size);
   }

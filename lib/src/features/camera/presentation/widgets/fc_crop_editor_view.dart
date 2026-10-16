@@ -10,15 +10,12 @@ import '../cubits/fc_photo_review/fc_photo_review_cubit.dart';
 import '../cubits/fc_photo_review/fc_photo_review_state.dart';
 import 'fc_camera_tool_button.dart';
 
-/// Crop and rotate, laid out the way phone photo editors are: Cancel and Done
-/// at the top, the photo with its frame in the middle, shapes and tools under
-/// the thumbs. Nothing is cut until the photo is stamped.
+/// Crop and rotate editor; nothing is cut until the photo is stamped.
 class FcCropEditorView extends StatelessWidget {
   const FcCropEditorView({required this.image, required this.size, super.key});
 
   final ImageProvider image;
 
-  /// The upright photo's size, in pixels.
   final Size size;
 
   @override
@@ -87,8 +84,6 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// The turned photo with its frame. Drag a corner or edge to resize, or the
-/// middle to move; the thirds grid shows only while dragging.
 class _CropCanvas extends StatefulWidget {
   const _CropCanvas({
     required this.image,
@@ -105,10 +100,9 @@ class _CropCanvas extends StatefulWidget {
 }
 
 class _CropCanvasState extends State<_CropCanvas> {
-  /// Room around the photo so a corner on its edge is still easy to grab.
+  /// Keeps corners on the photo's edge easy to grab.
   static const _margin = 28.0;
 
-  /// How far from a corner or edge a touch still grabs it.
   static const _reach = 28.0;
 
   FcCropHandle? _handle;
@@ -189,8 +183,7 @@ class _CropCanvasState extends State<_CropCanvas> {
     );
   }
 
-  /// Corners win over edges, edges over the inside, so a frame shrunk small
-  /// can still be grown again.
+  /// Corners beat edges beat inside, so a tiny frame can still grow.
   static FcCropHandle? _handleAt(Offset at, Rect frame, bool edges) {
     final corners = {
       FcCropHandle.topLeft: frame.topLeft,
@@ -242,7 +235,6 @@ class _FramePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Everything outside the frame dims, so what is kept reads at a glance.
     canvas.drawPath(
       Path()
         ..fillType = PathFillType.evenOdd
@@ -357,9 +349,7 @@ class _Shapes extends StatelessWidget {
   }
 }
 
-/// A pill drawn by hand rather than a `ChoiceChip`: a host's chip theme would
-/// otherwise repaint it, and on this always-dark screen that can leave the
-/// text the same colour as its background.
+/// Not a `ChoiceChip`: a host chip theme could hide text on this dark screen.
 class _ShapeChip extends StatelessWidget {
   const _ShapeChip({
     required this.icon,

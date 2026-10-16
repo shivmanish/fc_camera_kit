@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/image/metadata/fc_photo_metadata.dart';
 
-/// One scanned page: cropped, flattened, under budget, in an app-owned dir.
 final class FcScannedPage extends Equatable {
   const FcScannedPage({
     required this.file,
@@ -22,7 +21,7 @@ final class FcScannedPage extends Equatable {
   final bool wasCompressed;
   final int quality;
 
-  /// Present when `embedMetadata` is on.
+  /// Set only when `embedMetadata` is on.
   final FcPhotoMetadata? metadata;
 
   double get sizeKb => sizeBytes / 1024;
@@ -40,7 +39,6 @@ final class FcScannedPage extends Equatable {
   ];
 }
 
-/// Everything a scan produced, in scan order.
 final class FcScanResult extends Equatable {
   const FcScanResult(this.pages);
 

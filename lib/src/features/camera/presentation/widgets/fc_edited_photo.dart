@@ -2,8 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../core/image/edit/fc_photo_edit.dart';
 
-/// [image] turned and cropped by [edit], scaled to fit. Display only: the
-/// pixels are cut once, when the photo is stamped.
+/// Display only; pixels are cut once, at stamping.
 class FcEditedPhoto extends StatelessWidget {
   const FcEditedPhoto({
     required this.image,
@@ -14,7 +13,6 @@ class FcEditedPhoto extends StatelessWidget {
 
   final ImageProvider image;
 
-  /// The upright photo's size, in pixels.
   final Size size;
   final FcPhotoEdit edit;
 

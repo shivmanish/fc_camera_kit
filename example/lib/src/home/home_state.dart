@@ -25,36 +25,29 @@ class HomeState extends Equatable {
   final bool serviceEnabled;
   final FcGeoLocation? location;
 
-  /// What the stamper would receive right now.
   final FcPhotoMetadata? metadata;
 
   final bool checkingAccess;
   final bool locating;
 
-  /// Last location failure, shown once then cleared.
+  /// Shown once, then cleared.
   final FcCameraFailure? locationError;
 
-  /// Every processed photo this session, newest first.
   final List<FcCaptureResult> captures;
 
-  /// Every scanned page this session, newest first.
   final List<FcScannedPage> scans;
 
-  /// Every face scan this session, newest first.
   final List<FcFaceResult> faces;
 
-  /// The package is running a capture or a scan.
+  /// True while a capture or a scan is in progress.
   final bool capturing;
 
-  /// Last capture or scan failure, shown once then cleared.
+  /// Shown once, then cleared.
   final FcCameraFailure? captureError;
 
-  /// Mirrors `FcCameraKit.instance.placement`, so the control reflects the
-  /// kit rather than keeping a second source of truth.
+  /// Mirrors the kit's placement rather than keeping its own copy.
   final StampPlacement placement;
 
-  /// Passed to each `scan()` and `scanFace()` call, so both modes can be
-  /// tried side by side.
   final bool stampScans;
 
   bool get ready =>

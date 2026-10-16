@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/fc_face_frame_geometry.dart';
 
-/// The camera (or the frozen photo) with everything outside the face oval
-/// dimmed.
 class FcFaceViewport extends StatelessWidget {
   const FcFaceViewport({
     required this.preview,
@@ -16,11 +14,9 @@ class FcFaceViewport extends StatelessWidget {
 
   final Widget preview;
 
-  /// Replaces the live preview once a photo is taken.
   final String? frozenImagePath;
 
-  /// The photo is saved unmirrored; flip it on screen so it matches the
-  /// mirrored preview it replaces instead of jumping sideways.
+  /// Flip the unmirrored photo so it doesn't jump from the mirrored preview.
   final bool mirrorFrozen;
 
   @override

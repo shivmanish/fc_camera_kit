@@ -18,8 +18,8 @@ void main() {
 
   const target = FcFaceRules.defaultTarget;
 
-  /// A face centred in the oval, filling [fill] of its width, looking
-  /// straight; offsets move it by fractions of the oval's size.
+  /// Straight-on face centred in the oval, [fill] of its width wide.
+  /// Offsets shift it by fractions of the oval size.
   FcFaceObservation face({
     double offsetX = 0,
     double offsetY = 0,
@@ -50,7 +50,7 @@ void main() {
   FcFaceHint hint(List<FcFaceObservation> faces, {double luminance = 120}) =>
       evaluate(faces, luminance: luminance).hint;
 
-  /// open → closed → open, with [closedFor] ms shut.
+  /// Eyes open, shut for [closedFor] ms, then open.
   FcFaceHint blink({int closedFor = 150, int trackingId = 1}) {
     hint([face(trackingId: trackingId)]);
     advance(50);

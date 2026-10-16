@@ -5,7 +5,6 @@ import '../../../../../core/permissions/fc_permission_type.dart';
 import '../../../domain/entities/fc_scan_result.dart';
 import '../fc_scan/fc_scan_state.dart';
 
-/// Everything the scanner screen shows, one phase at a time.
 sealed class FcScannerScreenState extends Equatable {
   const FcScannerScreenState();
 
@@ -13,13 +12,11 @@ sealed class FcScannerScreenState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Reading settings; the platform scanner hasn't opened yet.
 final class FcScannerPreparing extends FcScannerScreenState {
   const FcScannerPreparing();
 }
 
-/// The screen must ask for [required]; it reports back with
-/// `permissionResolved`.
+/// Answered through `permissionResolved`.
 final class FcScannerAskingPermission extends FcScannerScreenState {
   const FcScannerAskingPermission(this.required);
 
@@ -29,13 +26,12 @@ final class FcScannerAskingPermission extends FcScannerScreenState {
   List<Object?> get props => [required];
 }
 
-/// Scanning or preparing pages.
 final class FcScannerActive extends FcScannerScreenState {
   const FcScannerActive(this.scan, {this.progress});
 
   final FcScanState scan;
 
-  /// Last page progress; stays up until the route has closed.
+  /// Kept until the route closes.
   final FcScanProcessing? progress;
 
   bool get canPop => scan is! FcScanProcessing;
@@ -44,7 +40,6 @@ final class FcScannerActive extends FcScannerScreenState {
   List<Object?> get props => [scan, progress];
 }
 
-/// A failure the user can retry or close.
 final class FcScannerFailed extends FcScannerScreenState {
   const FcScannerFailed(this.failure);
 
@@ -54,7 +49,6 @@ final class FcScannerFailed extends FcScannerScreenState {
   List<Object?> get props => [failure];
 }
 
-/// The flow has reported its outcome; the screen closes its route.
 final class FcScannerLeaving extends FcScannerScreenState {
   const FcScannerLeaving({this.result, this.progress});
 
@@ -65,7 +59,7 @@ final class FcScannerLeaving extends FcScannerScreenState {
   List<Object?> get props => [result, progress];
 }
 
-/// The route couldn't close (it is the navigator's first): a still end screen.
+/// The route is the navigator's first and cannot close.
 final class FcScannerStranded extends FcScannerScreenState {
   const FcScannerStranded({required this.completed});
 

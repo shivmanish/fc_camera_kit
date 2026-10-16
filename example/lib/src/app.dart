@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'home/home_page.dart';
 
-/// Root of the demo app.
-///
-/// Ships a light and a dark scheme on purpose: every surface the kit renders
-/// takes its colours from the host `ColorScheme`, and flipping the system theme
-/// is the quickest way to see that it actually does.
+/// Demo root; light and dark themes show the kit follows the host scheme.
 class FcCameraKitExampleApp extends StatelessWidget {
   const FcCameraKitExampleApp({super.key});
 
@@ -15,7 +11,7 @@ class FcCameraKitExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SG Camera Kit',
+      title: 'FC Camera Kit',
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),

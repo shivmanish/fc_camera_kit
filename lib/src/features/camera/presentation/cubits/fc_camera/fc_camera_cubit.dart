@@ -11,10 +11,7 @@ import '../../../data/datasources/fc_plugin_live_camera.dart';
 import '../../../domain/entities/fc_camera_frame.dart';
 import 'fc_camera_state.dart';
 
-/// Owns the live camera: opening, frames, one photo, and the app lifecycle.
-///
-/// Without `onFrame` it never streams analysis frames: a plain photo camera
-/// has no use for them, and they cost memory and battery on every frame.
+/// Live camera lifecycle; streams analysis frames only when `onFrame` is set.
 class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
   FcCameraCubit({
     void Function(FcCameraFrame frame)? onFrame,
@@ -29,8 +26,7 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
        _camera = camera ?? FcPluginLiveCamera(),
        super(initialState: const FcCameraStarting()) {
     if (watchLifecycle) {
-      // The plugin leaves lifecycle to the app: release when hidden, reopen
-      // when back, or the preview goes black after a call or app switch.
+      // Release when hidden, reopen on resume, or the preview goes black.
       _lifecycle = AppLifecycleListener(
         onInactive: _release,
         onResume: _reopen,
@@ -40,24 +36,21 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
 
   final FcCameraResolution resolution;
 
-  /// Opens whichever side the device has when [lens] is missing, as on a
-  /// front-only tablet. Off for face scan, which needs the front camera.
+  /// Falls back to any available lens, e.g. on front-only tablets.
   final bool useAnyLens;
   final void Function(FcCameraFrame frame)? _onFrame;
   final FcLiveCamera _camera;
   AppLifecycleListener? _lifecycle;
   FcCameraLens _lens;
 
-  /// Bumped on every release; a start that sees it change abandons itself.
+  /// A start abandons itself if this changes underneath it.
   int _generation = 0;
   bool _framesWanted;
   bool _capturing = false;
   bool _landscape = false;
 
-  /// The user's choice, kept across reopens and lens switches.
   FcFlashMode _flash = FcFlashMode.auto;
 
-  /// Set once the camera refused a flash: the hardware won't grow one.
   bool _flashMissing = false;
 
   double _zoom = 1;
@@ -106,7 +99,7 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     }
   }
 
-  /// Takes one photo. Frames stay stopped afterwards until [resumeFrames].
+  /// Frames stay stopped afterwards until [resumeFrames].
   Future<FcResult<XFile>> capture() async {
     final ready = state;
     if (_capturing || ready is! FcCameraReady) {
@@ -127,7 +120,6 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     }
   }
 
-  /// Reopens on the other side of the device, when it has one.
   Future<void> switchLens() async {
     final ready = state;
     if (ready is! FcCameraReady || !ready.canSwitchLens || ready.capturing) {
@@ -139,8 +131,7 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     await start();
   }
 
-  /// auto → on → off → auto, like the system camera app. A mode the camera
-  /// refuses is skipped over rather than blocking the user.
+  /// A mode the camera refuses is skipped rather than blocking the user.
   Future<void> cycleFlash() async {
     final ready = state;
     if (ready is! FcCameraReady || ready.capturing) return;
@@ -162,28 +153,25 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     _updateReady((ready) => ready.copyWith(flash: () => next));
   }
 
-  /// Marks where a pinch starts, so the zoom follows the fingers from there.
   void beginZoom() => _zoomAtPinchStart = _zoom;
 
-  /// Zooms by a pinch's [scale] from where it began, within the lens's range.
   Future<void> zoomBy(double scale) async {
     if (state is! FcCameraReady) return;
     final min = _camera.minZoom;
     final max = _camera.maxZoom;
     if (max <= min) return;
     final next = (_zoomAtPinchStart * scale).clamp(min, max).toDouble();
-    // A pinch reports every pixel of movement; skip steps nobody can see.
+    // Skip invisible steps; pinches report every pixel.
     if ((next - _zoom).abs() < 0.01) return;
     _zoom = next;
     _zoomed = true;
     try {
       await _camera.setZoom(next);
     } on FcCameraException {
-      // The preview stays at the last level that worked.
+      // Keep the last level that worked.
     }
   }
 
-  /// Follows the screen: the preview, photo and frames match its orientation.
   Future<void> syncOrientation({required bool landscape}) async {
     _landscape = landscape;
     // Not open yet: start() applies it.
@@ -195,14 +183,13 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     }
   }
 
-  /// Stops analysis frames (the preview keeps running) until [resumeFrames].
   Future<void> pauseFrames() async {
     _framesWanted = false;
     if (state is! FcCameraReady) return;
     try {
       await _camera.stopFrames();
     } on FcCameraException {
-      // Frames that keep coming are dropped by the consumer anyway.
+      // The consumer drops stray frames anyway.
     }
   }
 
@@ -218,9 +205,7 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     }
   }
 
-  /// Re-applies the user's flash on every open, so the screen never shows one
-  /// mode while the platform fires another. A camera that refuses it has no
-  /// flash to offer.
+  /// Re-applied per open so the UI and platform flash never disagree.
   Future<void> _applyFlash() async {
     try {
       await _camera.setFlash(_flash);
@@ -229,7 +214,6 @@ class FcCameraCubit extends FcCubit<FcCameraState, XFile, FcCameraLens> {
     }
   }
 
-  /// Keeps the user's zoom across reopens, within the new lens's range.
   Future<void> _applyZoom() async {
     final min = _camera.minZoom;
     final max = _camera.maxZoom;

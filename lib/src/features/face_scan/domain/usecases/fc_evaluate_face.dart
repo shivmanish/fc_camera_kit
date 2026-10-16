@@ -6,7 +6,6 @@ import '../entities/fc_face_result.dart';
 import '../entities/fc_face_rules.dart';
 import 'fc_blink_tracker.dart';
 
-/// The verdict on one frame: what to say, and the face when there is one.
 final class FcFaceCheck extends Equatable {
   const FcFaceCheck(this.hint, [this.face]);
 
@@ -19,7 +18,7 @@ final class FcFaceCheck extends Equatable {
   List<Object?> get props => [hint, face];
 }
 
-/// Turns detected faces into the single hint to show, tracking the blink.
+/// Picks the single hint to show per frame and tracks the blink.
 final class FcEvaluateFace {
   FcEvaluateFace({
     FcFaceRules rules = const FcFaceRules(),
@@ -50,10 +49,8 @@ final class FcEvaluateFace {
     );
   }
 
-  /// Where the oval now is in the camera frame, e.g. after a rotation.
   set target(FcFaceBox target) => _rules = _rules.copyWith(target: target);
 
-  /// Forget the blink, e.g. after a retake.
   void reset() {
     _invalidSince = null;
     _blinks.reset();
@@ -86,7 +83,7 @@ final class FcEvaluateFace {
     return null;
   }
 
-  /// One stray frame keeps the blink; staying out of bounds loses it.
+  /// A single stray frame keeps the blink; a sustained miss resets it.
   void _markInvalid() {
     final since = _invalidSince ??= _now();
     if (_now().difference(since) > rules.graceAfterInvalid) _blinks.reset();

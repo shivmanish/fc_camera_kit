@@ -10,7 +10,6 @@ import '../../domain/entities/fc_camera_frame.dart';
 import 'fc_frame_rotation.dart';
 import 'fc_live_camera.dart';
 
-/// [FcLiveCamera] on the `camera` plugin.
 final class FcPluginLiveCamera implements FcLiveCamera {
   cam.CameraController? _controller;
   FcCameraLens _lens = FcCameraLens.front;
@@ -19,12 +18,10 @@ final class FcPluginLiveCamera implements FcLiveCamera {
   double _maxZoom = 1;
   bool _closed = false;
 
-  /// The release still running from the last close. A new controller waits
-  /// for it: opening one while the old is mid-release fails on some devices.
+  /// Some devices fail to open while the old controller is still releasing.
   Future<void>? _disposing;
 
-  /// Bumped by every open and close; only the latest open may keep its
-  /// controller.
+  /// Only the latest open keeps its controller.
   int _token = 0;
 
   @override
@@ -56,7 +53,6 @@ final class FcPluginLiveCamera implements FcLiveCamera {
     final device = controller.value.deviceOrientation;
     final target = !landscape
         ? DeviceOrientation.portraitUp
-        // Whichever landscape side the device is actually turned to.
         : device == DeviceOrientation.landscapeRight
         ? DeviceOrientation.landscapeRight
         : DeviceOrientation.landscapeLeft;
@@ -103,7 +99,7 @@ final class FcPluginLiveCamera implements FcLiveCamera {
           FcCameraResolution.photo => cam.ResolutionPreset.veryHigh,
         },
         enableAudio: false,
-        // What ML Kit reads directly: no conversion per frame.
+        // Formats ML Kit reads without per-frame conversion.
         imageFormatGroup: Platform.isIOS
             ? cam.ImageFormatGroup.bgra8888
             : cam.ImageFormatGroup.nv21,
@@ -117,8 +113,7 @@ final class FcPluginLiveCamera implements FcLiveCamera {
       return controller;
     });
 
-    // Closed, or overtaken by a newer open, while opening: release this one
-    // at once rather than leak a native camera.
+    // Closed or superseded mid-open: release now, don't leak it.
     if (_closed || token != _token) {
       await controller.dispose();
       return;
@@ -199,8 +194,6 @@ final class FcPluginLiveCamera implements FcLiveCamera {
     await _disposeController();
   }
 
-  /// Releases the current controller, and waits for any release already
-  /// running, so the next open starts on a free camera.
   Future<void> _disposeController() {
     final controller = _controller;
     _controller = null;
@@ -214,16 +207,15 @@ final class FcPluginLiveCamera implements FcLiveCamera {
         await controller.stopImageStream();
       }
     } catch (_) {
-      // Disposing below releases the stream either way.
+      // dispose() below releases the stream anyway.
     }
     try {
       await controller.dispose();
     } catch (_) {
-      // Already released by the platform; nothing left to free.
+      // Already released by the platform.
     }
   }
 
-  /// A lens that can't report its range simply doesn't zoom.
   static Future<(double, double)> _zoomRange(
     cam.CameraController controller,
   ) async {
@@ -246,7 +238,7 @@ final class FcPluginLiveCamera implements FcLiveCamera {
       cam.ImageFormatGroup.bgra8888 => FcFrameFormat.bgra8888,
       _ => null,
     };
-    // Both formats arrive as one plane; anything else ML Kit can't read.
+    // ML Kit needs a single-plane nv21 or bgra8888 frame.
     if (format == null || image.planes.length != 1) return null;
 
     final plane = image.planes.first;
@@ -259,7 +251,7 @@ final class FcPluginLiveCamera implements FcLiveCamera {
       rotationDegrees: fcFrameRotation(
         isIOS: Platform.isIOS,
         sensorOrientation: controller.description.sensorOrientation,
-        // The locked orientation is what the preview and photo follow.
+        // Preview and photo follow the locked orientation.
         deviceRotation: _degrees(
           controller.value.lockedCaptureOrientation ??
               controller.value.deviceOrientation,
@@ -276,7 +268,6 @@ final class FcPluginLiveCamera implements FcLiveCamera {
     DeviceOrientation.landscapeRight => 270,
   };
 
-  /// Turns plugin errors into kit exceptions, permission ones included.
   static Future<T> _guard<T>(String action, Future<T> Function() run) async {
     try {
       return await run();

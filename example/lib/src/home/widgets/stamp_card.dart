@@ -6,8 +6,7 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'section_card.dart';
 
-/// Switches where the stamp is drawn, so both variants can be compared on the
-/// same photo without an app restart.
+/// Toggles stamp placement so both can be compared on the same photo.
 class StampCard extends StatelessWidget {
   const StampCard({super.key});
 
@@ -75,7 +74,7 @@ class StampCard extends StatelessWidget {
   }
 }
 
-/// Photos are always stamped; scans only when this is on.
+/// Photos are always stamped; scans only when enabled.
 class _StampScansSwitch extends StatelessWidget {
   const _StampScansSwitch({required this.value, required this.onChanged});
 
@@ -97,7 +96,7 @@ class _StampScansSwitch extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        // Scaled so the header row keeps its height.
+        // Scaled to keep the header row height.
         Transform.scale(
           scale: 0.8,
           child: Switch(

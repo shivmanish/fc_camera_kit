@@ -8,10 +8,7 @@ import '../../../../core/ui/fc_ui.dart';
 import '../cubit/fc_permission_cubit.dart';
 import '../cubit/fc_permission_state.dart';
 
-/// Shown when permission is granted but the device location toggle is off.
-///
-/// Separate from the permission sheet because the fix is different: no
-/// permission dialog can turn GPS back on, only device settings can.
+/// Shown when location is granted but the device toggle is off.
 class FcLocationServiceDialog extends StatelessWidget {
   const FcLocationServiceDialog({
     this.allowCancel = true,
@@ -21,7 +18,6 @@ class FcLocationServiceDialog extends StatelessWidget {
 
   final bool allowCancel;
 
-  /// Injected gateway. Tests pass a fake so no platform channel is touched.
   @visibleForTesting
   final FcPermissions? permissions;
 
@@ -49,9 +45,7 @@ class _DialogView extends StatelessWidget {
 
     return PopScope(
       canPop: false,
-      // Fires on the transition into "read, and enabled". Testing only
-      // `!previous.serviceEnabled` would never fire when the toggle was
-      // already on before this opened, trapping the user behind canPop:false.
+      // Fire on entering loaded+enabled, so an already-on toggle still closes.
       child: BlocListener<FcPermissionCubit, FcPermissionState>(
         listenWhen: (previous, current) =>
             current.loaded &&
@@ -65,7 +59,7 @@ class _DialogView extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(FcUi.dialogRadius),
           ),
-          // Overlaid in the corner so it adds no vertical space of its own.
+          // Overlaid so the close button adds no height.
           child: Stack(
             children: [
               Padding(
@@ -117,7 +111,6 @@ class _DialogView extends StatelessWidget {
   }
 }
 
-/// Reads as "permission fine, location off" at a glance.
 class _Badge extends StatelessWidget {
   const _Badge();
 
@@ -150,7 +143,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// Says exactly what will happen, so leaving the app is not a surprise.
 class _Steps extends StatelessWidget {
   const _Steps();
 

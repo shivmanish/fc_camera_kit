@@ -6,10 +6,7 @@ import 'fc_location_permission.dart';
 import 'fc_permission_status.dart';
 import 'fc_permission_type.dart';
 
-/// One entry point for every permission the kit needs.
-///
-/// Delegates to the per-permission gateways so each keeps its own platform
-/// quirks, and adds the group operations the capture gate needs.
+/// Single entry point for kit permissions, delegating to per-type gateways.
 class FcPermissions {
   FcPermissions._();
 
@@ -20,7 +17,6 @@ class FcPermissions {
     return _instance!;
   }
 
-  /// Everything a capture needs by default.
   static const Set<FcPermissionType> captureDefaults = {
     FcPermissionType.camera,
     FcPermissionType.location,
@@ -31,7 +27,6 @@ class FcPermissions {
     FcPermissionType.location => FcLocationPermission.instance.status(),
   };
 
-  /// Status of each, checked concurrently. Never prompts.
   Future<Map<FcPermissionType, FcPermissionStatus>> statusOfAll(
     Set<FcPermissionType> types,
   ) async {
@@ -40,7 +35,6 @@ class FcPermissions {
     return Map.fromIterables(ordered, statuses);
   }
 
-  /// The subset that is not usable yet, in a stable order.
   Future<List<FcPermissionType>> missing(Set<FcPermissionType> types) async {
     final statuses = await statusOfAll(types);
     return FcPermissionType.values
@@ -51,15 +45,8 @@ class FcPermissions {
   Future<bool> allGranted(Set<FcPermissionType> types) async =>
       (await missing(types)).isEmpty;
 
-  /// Asks for everything in [types] as **one grouped request**.
-  ///
-  /// A single `ActivityCompat.requestPermissions` call on Android, with one
-  /// request code and one callback — our code never regains control between
-  /// prompts, so the sequence cannot desync or double-prompt.
-  ///
-  /// Android still renders one system dialog per permission *group*, so camera
-  /// and location appear back to back. That is the OS, not us; no API merges
-  /// them into a single dialog. iOS likewise shows one alert per type.
+  /// One grouped native request, so prompts cannot desync or repeat.
+  /// The OS still shows one dialog per permission group.
   Future<Map<FcPermissionType, FcPermissionStatus>> requestAll(
     Set<FcPermissionType> types,
   ) async {
@@ -68,18 +55,12 @@ class FcPermissions {
 
     await ordered.map(nativePermission).toList().request();
 
-    // Re-read through the gateways rather than trusting the returned map: the
-    // location status also folds in geolocator's precise/reduced accuracy, and
-    // Android only reports a permanent denial once a request has happened.
+    // Re-read via gateways: they add accuracy and post-request denial state.
     final statuses = await Future.wait(ordered.map(statusOf));
     return Map.fromIterables(ordered, statuses);
   }
 
-  /// Maps our type onto the plugin's.
-  ///
-  /// Location is `locationWhenInUse`, never `location`: the latter can escalate
-  /// to Always on iOS, and our Info.plist carries only a When-In-Use usage
-  /// description — requesting Always without one is an App Store rejection.
+  /// When-in-use only: plain `location` may ask for Always on iOS.
   @visibleForTesting
   static ph.Permission nativePermission(FcPermissionType type) =>
       switch (type) {
@@ -87,7 +68,6 @@ class FcPermissions {
         FcPermissionType.location => ph.Permission.locationWhenInUse,
       };
 
-  /// Device-wide location toggle. Only meaningful once location is granted.
   Future<bool> isLocationServiceEnabled() =>
       FcLocationPermission.instance.isServiceEnabled();
 

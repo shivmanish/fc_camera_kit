@@ -6,10 +6,7 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'image_strip_card.dart';
 
-/// Every photo captured this session, newest first.
-///
-/// Shows only the images: who, when and where are burned into their pixels, so
-/// repeating them as text would duplicate the thing the stamp exists to prove.
+/// Session photos, newest first; images only, as the stamp holds the details.
 class CaptureCard extends StatelessWidget {
   const CaptureCard({super.key});
 

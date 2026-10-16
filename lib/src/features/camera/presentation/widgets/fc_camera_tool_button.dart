@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// An icon over a label, sized for a thumb on a dark camera surface.
-///
-/// [active] marks a tool already in use, such as a photo already cropped.
 class FcCameraToolButton extends StatelessWidget {
   const FcCameraToolButton({
     required this.icon,

@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../home_cubit.dart';
 
-/// Edits the identity the kit stamps onto a photo.
+/// Edits the identity stamped onto photos.
 Future<void> showUserSheet(BuildContext context, {FcUser? current}) {
   final cubit = context.read<HomeCubit>();
 
@@ -23,7 +23,7 @@ Future<void> showUserSheet(BuildContext context, {FcUser? current}) {
   );
 }
 
-/// Stateful only because a text form needs controllers to dispose.
+/// Stateful only to own and dispose the text controllers.
 class _UserForm extends StatefulWidget {
   const _UserForm({this.current});
 
@@ -82,9 +82,9 @@ class _UserFormState extends State<_UserForm> {
     final theme = Theme.of(context);
 
     return Padding(
-      // Lifts the form clear of the keyboard.
+      // Keeps the form above the keyboard.
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      // Close overlays the corner so it adds no spacing above the title.
+      // Close sits over the corner, adding no space above the title.
       child: Stack(
         children: [
           SingleChildScrollView(

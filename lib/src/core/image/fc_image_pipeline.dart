@@ -13,7 +13,6 @@ import 'metadata/fc_photo_metadata.dart';
 import 'stamp/fc_stamp_renderer.dart';
 import 'stamp/fc_stamp_style.dart';
 
-/// One step of preparing an image, in the order they run.
 enum FcImageStage {
   stamping('Adding the stamp'),
   compressing('Compressing'),
@@ -23,7 +22,6 @@ enum FcImageStage {
 
   final String label;
 
-  /// The steps a run with these settings goes through, in order.
   static List<FcImageStage> planFor({
     required bool stamp,
     required bool writeMetadata,
@@ -34,7 +32,6 @@ enum FcImageStage {
   ];
 }
 
-/// How to stamp an image; the same settings `capture()` uses.
 final class FcStampSpec extends Equatable {
   const FcStampSpec({
     required this.placement,
@@ -52,7 +49,6 @@ final class FcStampSpec extends Equatable {
   List<Object?> get props => [placement, dateFormat, includeDevice, style];
 }
 
-/// A finished image file and what the pipeline learned producing it.
 final class FcProcessedImage extends Equatable {
   const FcProcessedImage({
     required this.file,
@@ -73,8 +69,7 @@ final class FcProcessedImage extends Equatable {
   final int quality;
   final bool stamped;
 
-  /// The metadata as embedded: with this file's own `imageId` when EXIF was
-  /// written.
+  /// Carries this file's own `imageId` once EXIF is written.
   final FcPhotoMetadata? metadata;
 
   @override
@@ -90,10 +85,7 @@ final class FcProcessedImage extends Equatable {
   ];
 }
 
-/// Stamp → compress → EXIF, shared by every feature that hands back a file.
-///
-/// Throws `FcCameraException`s; a file it saved is deleted if a later step
-/// fails, so a failure never leaves anything behind.
+/// Stamps, compresses and tags an image; cleans up its file on failure.
 abstract final class FcImagePipeline {
   static Future<FcProcessedImage> run(
     XFile source, {
@@ -126,7 +118,7 @@ abstract final class FcImagePipeline {
     onStage?.call(FcImageStage.compressing);
     final outcome = await FcImageCompressor.toBudget(
       bytes: bytes,
-      // Room for the EXIF block, so the finished file stays under the limit.
+      // Reserve EXIF space so the final file still fits the limit.
       maxBytes: writeMetadata && metadata != null
           ? maxBytes - FcExifWriter.reservedBytes
           : maxBytes,
@@ -139,7 +131,7 @@ abstract final class FcImagePipeline {
     try {
       if (writeMetadata && metadata != null) {
         onStage?.call(FcImageStage.writingMetadata);
-        // After compression: a JPEG re-encode drops EXIF.
+        // Must follow compression; re-encoding a JPEG drops EXIF.
         embedded = await FcExifWriter.write(file.path, metadata);
       }
     } catch (_) {
@@ -149,7 +141,6 @@ abstract final class FcImagePipeline {
 
     return FcProcessedImage(
       file: XFile(file.path),
-      // The file as returned, EXIF included.
       sizeBytes: await file.length(),
       width: outcome.width,
       height: outcome.height,
@@ -172,7 +163,7 @@ abstract final class FcImagePipeline {
     }
   }
 
-  /// Reads the header only; no full decode.
+  // Header only; avoids a full decode.
   static Future<(int, int)> _dimensionsOf(Uint8List bytes) async {
     ui.ImmutableBuffer? buffer;
     ui.ImageDescriptor? descriptor;

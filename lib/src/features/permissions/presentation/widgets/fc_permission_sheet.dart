@@ -9,7 +9,7 @@ import '../../../../core/ui/fc_ui.dart';
 import '../cubit/fc_permission_cubit.dart';
 import '../cubit/fc_permission_state.dart';
 
-/// Non-dismissible sheet listing the permissions still blocking a capture.
+/// Blocking sheet for the permissions a capture still needs.
 class FcPermissionSheet extends StatelessWidget {
   const FcPermissionSheet({
     required this.required,
@@ -20,12 +20,9 @@ class FcPermissionSheet extends StatelessWidget {
 
   final Set<FcPermissionType> required;
 
-  /// Shows an explicit "Not now". The sheet is never dismissible by tapping
-  /// outside, dragging, or the back gesture regardless of this flag.
+  /// Adds a "Not now" button; tap-outside, drag and back never dismiss.
   final bool allowCancel;
 
-  /// Injected gateway. Production leaves this null and the cubit uses the
-  /// singleton; tests pass a fake so no platform channel is touched.
   @visibleForTesting
   final FcPermissions? permissions;
 
@@ -50,8 +47,7 @@ class _SheetView extends StatelessWidget {
 
     return PopScope(
       canPop: false,
-      // Pops itself the moment everything is granted, including when the user
-      // fixes it in App Settings and comes back.
+      // Closes once all are granted, including after a trip to App Settings.
       child: BlocListener<FcPermissionCubit, FcPermissionState>(
         listenWhen: (previous, current) =>
             !previous.allGranted && current.allGranted,
@@ -64,9 +60,7 @@ class _SheetView extends StatelessWidget {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.sizeOf(context).height * 0.9,
             ),
-            // Stacked, not stacked in a row: the close button overlays the
-            // corner so it cannot push the title down or add spacing of its
-            // own. The Column alone decides the sheet's height.
+            // Overlaid close button, so only the Column sets the sheet height.
             child: Stack(
               children: [
                 Column(
@@ -126,7 +120,6 @@ class _SheetView extends StatelessWidget {
   }
 }
 
-/// Copy changes once the only remaining fix is App Settings.
 class _Subtitle extends StatelessWidget {
   const _Subtitle();
 
@@ -161,9 +154,7 @@ class _PermissionCard extends StatelessWidget {
     return BlocBuilder<FcPermissionCubit, FcPermissionState>(
       buildWhen: (previous, current) => previous.statuses != current.statuses,
       builder: (context, state) {
-        // Driven by the required set, not the status map, so the card renders
-        // complete on the first frame instead of flashing empty while the
-        // first status read is still in flight.
+        // From the required set, so rows show before the first status read.
         final types = state.ordered;
         return DecoratedBox(
           decoration: BoxDecoration(
@@ -217,7 +208,6 @@ class _ContinueButton extends StatelessWidget {
   }
 }
 
-/// One permission line: what it is, why it is needed, whether it is satisfied.
 class _PermissionRow extends StatelessWidget {
   const _PermissionRow({required this.type, required this.status});
 
@@ -231,8 +221,7 @@ class _PermissionRow extends StatelessWidget {
     final granted = status?.isUsable ?? false;
     final blocked = status?.needsAppSettings ?? false;
 
-    // Without this a blocked row looks identical to a merely-denied one, so on
-    // a mixed result the user cannot tell which permission needs Settings.
+    // Tells Settings-only rows apart from merely denied ones.
     final trailing = switch ((granted, blocked)) {
       (true, _) => (Icons.check_circle_rounded, scheme.tertiary, 'Allowed'),
       (false, true) => (Icons.error_rounded, scheme.error, 'Blocked'),

@@ -2,7 +2,7 @@
 
 ## 1.0.0
 
-Aligned with `fc_smart_camera` 1.0.0. Android and iOS only.
+Android and iOS only.
 
 - In-app camera for `capture()`: flash, pinch zoom, lens switch; gallery picks kept.
 - Photo review after the shutter: zoom, Retake, Crop or Use photo.
@@ -22,9 +22,9 @@ Aligned with `fc_smart_camera` 1.0.0. Android and iOS only.
 Phase 1 — package scaffold. No capture pipeline yet.
 
 - Feature-first clean architecture skeleton under `lib/src/`.
-- Sealed `SgCameraException` (thrown by data sources) and `SgCameraFailure`
+- Sealed `FcCameraException` (thrown by data sources) and `FcCameraFailure`
   (carried in state) hierarchies.
-- `SgResult<T>` as a `typedef` over dartz `Either<SgCameraFailure, T>`, plus
+- `FcResult<T>` as a `typedef` over dartz `Either<FcCameraFailure, T>`, plus
   `when` (success-first), `thenFlatMap` and `thenMap` for async chaining.
 - `Either` / `Left` / `Right` re-exported so host apps need not depend on dartz.
 - Strict analyzer setup: `strict-casts`, `strict-inference`, `strict-raw-types`.

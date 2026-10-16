@@ -56,7 +56,7 @@ void main() {
     ),
   ).thenAnswer((_) async => fcSuccess(page));
 
-  // Spinners never settle, so advance time in fixed steps instead.
+  // Spinners never settle; pump fixed steps instead.
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));
@@ -578,7 +578,7 @@ void main() {
       var attempts = 0;
       when(() => repository.acquire(any())).thenAnswer((_) {
         attempts++;
-        // First scan never returns, like a scanner left open at logout.
+        // First scan never completes, like a scanner left open on logout.
         return attempts == 1
             ? Completer<FcResult<List<XFile>>>().future
             : Future.value(fcFailure(const CancelledFailure()));

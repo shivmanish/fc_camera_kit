@@ -52,15 +52,14 @@ void main() {
         const w = 4, h = 3;
         final bmp = FcBmpEncoder.encode(solid(w, h, 200, 100, 50), w, h);
 
-        // The real proof: a platform decoder reads it. If Skia accepts this,
-        // BitmapFactory and ImageIO will too.
+        // If Skia decodes it, the platform decoders will too.
         final codec = await ui.instantiateImageCodec(bmp);
         final frame = await codec.getNextFrame();
         final pixels = await frame.image.toByteData();
 
         expect(frame.image.width, w);
         expect(frame.image.height, h);
-        // Red, green, blue survive in that order — a BGRA swap bug shows here.
+        // Channel order check; catches a BGRA swap.
         expect(pixels!.getUint8(0), 200);
         expect(pixels.getUint8(1), 100);
         expect(pixels.getUint8(2), 50);
@@ -85,7 +84,7 @@ void main() {
       final frame = await codec.getNextFrame();
       final pixels = (await frame.image.toByteData())!;
 
-      // BMP stores rows bottom-up; getting this wrong flips the stamp.
+      // BMP rows are stored bottom-up; wrong order flips the image.
       expect(pixels.getUint8(0), 255, reason: 'top-left red');
       expect(pixels.getUint8(2), 0, reason: 'top-left not blue');
 

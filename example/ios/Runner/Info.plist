@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sg Camera Kit Example</string>
+	<string>FC Camera Kit Example</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -53,7 +53,7 @@
 	<string>Used to save a stamped photo back to your library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Used to record where a photo was taken.</string>
-	<!-- Required by SgLocationPermission.requestPreciseAccuracy on iOS 14+,
+	<!-- Required by FcLocationPermission.requestPreciseAccuracy on iOS 14+,
 	     for upgrading an approximate grant to a precise one. The inner key must
 	     match the purposeKey passed in Dart. -->
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>

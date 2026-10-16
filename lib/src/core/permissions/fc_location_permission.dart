@@ -9,11 +9,7 @@ import '../image/metadata/fc_geo_location.dart';
 import '../utils/fc_result.dart';
 import 'fc_permission_status.dart';
 
-/// Location permission and position access.
-///
-/// Built on `geolocator` rather than `permission_handler` because only
-/// geolocator also reports whether location *services* are switched on — a
-/// device with GPS off is not a denied permission, and the fixes differ.
+/// Uses geolocator because it also reports whether location services are on.
 final class FcLocationPermission {
   FcLocationPermission._();
 
@@ -24,26 +20,17 @@ final class FcLocationPermission {
     return _instance!;
   }
 
-  /// Device-wide location toggle. Independent of app permission.
   Future<bool> isServiceEnabled() => Geolocator.isLocationServiceEnabled();
 
-  /// Permission status, without ever showing a dialog.
-  ///
-  /// Reports only the permission. A granted permission with location services
-  /// switched off is still granted — check [isServiceEnabled] separately.
+  /// Ignores the service toggle; check [isServiceEnabled] separately.
   Future<FcPermissionStatus> status() async {
     final permission = await Geolocator.checkPermission();
     return mapPermission(permission, accuracy: await _accuracyOrNull());
   }
 
-  /// Whether a position can be read right now. Never prompts.
   Future<bool> hasPermission() async => (await status()).isUsable;
 
-  /// Grants-or-asks. Returns the status on success, an [FcCameraFailure]
-  /// describing the blocker otherwise.
-  ///
-  /// Does not re-prompt when permission is already held, and never prompts at
-  /// all when the OS location toggle is off — that dialog cannot fix it.
+  /// Skips the prompt when services are off, since granting cannot fix that.
   Future<FcResult<FcPermissionStatus>> askLocationPermission() async {
     if (!await isServiceEnabled()) {
       return fcFailure(
@@ -55,8 +42,7 @@ final class FcLocationPermission {
 
     var permission = await Geolocator.checkPermission();
 
-    // Ask only when asking can achieve something. whileInUse/always are
-    // already held, and deniedForever will not surface a dialog at all.
+    // deniedForever shows no dialog, so only these states are worth asking.
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.unableToDetermine) {
       permission = await Geolocator.requestPermission();
@@ -76,12 +62,7 @@ final class FcLocationPermission {
     );
   }
 
-  /// Reads the current position, asking for permission first when needed.
-  ///
-  /// Falls back to the last known fix if a fresh one times out, which is
-  /// usually better than failing a capture outright. Reverse geocoding is
-  /// opt-in and never fails the call — a missing address is not a missing
-  /// location.
+  /// Falls back to the last known fix; geocoding never fails the call.
   Future<FcResult<FcGeoLocation>> getCurrentLocation({
     LocationAccuracy accuracy = LocationAccuracy.best,
     Duration timeout = const Duration(seconds: 15),
@@ -119,10 +100,7 @@ final class FcLocationPermission {
     }
   }
 
-  /// iOS 14+: asks the user to upgrade an approximate grant to precise.
-  ///
-  /// [purposeKey] must match an entry in the Info.plist
-  /// `NSLocationTemporaryUsageDescriptionDictionary`. A no-op elsewhere.
+  /// iOS 14+; [purposeKey] must be in Info.plist's temporary usage keys.
   Future<bool> requestPreciseAccuracy({
     String purposeKey = 'FcCameraKitPreciseLocation',
   }) async {
@@ -136,14 +114,10 @@ final class FcLocationPermission {
     }
   }
 
-  /// Opens the app's settings page, for recovering a permanent denial.
   Future<bool> openAppSettings() => Geolocator.openAppSettings();
 
-  /// Opens the device location settings, for recovering a disabled service.
   Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
 
-  /// Maps geolocator's permission onto [FcPermissionStatus]. Pure, so the
-  /// branching is testable without a platform channel.
   @visibleForTesting
   static FcPermissionStatus mapPermission(
     LocationPermission permission, {
@@ -158,7 +132,7 @@ final class FcLocationPermission {
     LocationPermission.unableToDetermine => FcPermissionStatus.denied,
   };
 
-  /// Joins the meaningful parts of a placemark, skipping blanks and repeats.
+  /// Skips blank and repeated placemark parts.
   @visibleForTesting
   static String? formatAddress(Placemark place) {
     final parts = <String?>[
@@ -203,7 +177,6 @@ final class FcLocationPermission {
     );
   }
 
-  /// Last known fix as a consolation prize, or [onMissing] if there is none.
   Future<FcResult<FcGeoLocation>> _lastKnownOr(
     bool allowLastKnown,
     bool resolveAddress,
@@ -235,7 +208,7 @@ final class FcLocationPermission {
         : null,
   );
 
-  /// Best-effort. Geocoding needs a network round trip and is allowed to fail.
+  // Best effort: needs the network and may fail.
   Future<String?> _reverseGeocode(double latitude, double longitude) async {
     try {
       final places = await placemarkFromCoordinates(latitude, longitude);

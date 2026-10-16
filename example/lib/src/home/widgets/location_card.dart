@@ -5,7 +5,7 @@ import '../home_cubit.dart';
 import '../home_state.dart';
 import 'section_card.dart';
 
-/// The "where" half of the stamp.
+/// Where gets stamped: the current location fix.
 class LocationCard extends StatelessWidget {
   const LocationCard({super.key});
 

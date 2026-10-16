@@ -7,7 +7,6 @@ import '../error/fc_camera_failure.dart';
 import '../utils/fc_result.dart';
 import 'fc_navigator.dart';
 
-/// The callbacks a flow page reports its single outcome through.
 final class FcFlowCallbacks<T> {
   const FcFlowCallbacks({
     required this.onCompleted,
@@ -20,14 +19,11 @@ final class FcFlowCallbacks<T> {
   final ValueChanged<FcCameraFailure> onFailed;
 }
 
-/// Runs a kit flow page as one call that returns one [FcResult].
+/// Runs a kit flow page as a single call that resolves to one [FcResult].
 abstract final class FcFlow {
   static final Map<Object, Future<Object>> _inFlight = {};
 
-  /// Pushes the page built by [page] and resolves with its outcome.
-  ///
-  /// A second call with the same [key] while one runs gets that run's result
-  /// instead of opening the flow twice. Never throws.
+  /// Repeat calls with the same [key] share the running flow's result.
   static Future<FcResult<T>> run<T extends Object>(
     BuildContext context, {
     required Object key,
@@ -35,7 +31,6 @@ abstract final class FcFlow {
     bool animate = false,
   }) {
     final running = _inFlight[key];
-    // The very same future, so both callers see one result.
     if (running != null) return running as Future<FcResult<T>>;
 
     final next = _run(context, page: page, animate: animate);
@@ -64,7 +59,7 @@ abstract final class FcFlow {
     T? result;
     FcCameraFailure? failure;
     try {
-      // The page closes its own route; the callbacks only record the outcome.
+      // The page pops itself; callbacks only record the outcome.
       await FcNavigator.push<Object?>(
         context,
         (_) => page(

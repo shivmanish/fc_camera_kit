@@ -11,12 +11,10 @@ sealed class FcFaceSessionState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Waiting for the shutter.
 final class FcFaceSessionLive extends FcFaceSessionState {
   const FcFaceSessionLive();
 }
 
-/// The taken photo is being stamped, compressed and tagged.
 final class FcFaceSessionProcessing extends FcFaceSessionState {
   const FcFaceSessionProcessing({
     required this.photoPath,
@@ -24,11 +22,11 @@ final class FcFaceSessionProcessing extends FcFaceSessionState {
     this.stage,
   });
 
-  /// Shown frozen in the circle while this runs.
+  /// Shown frozen in the circle meanwhile.
   final String photoPath;
   final List<FcImageStage> stages;
 
-  /// `null` until the first stage starts.
+  /// `null` before the first stage.
   final FcImageStage? stage;
 
   @override

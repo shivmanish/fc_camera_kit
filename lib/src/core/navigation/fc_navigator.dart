@@ -2,15 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-/// Opens and closes every screen, sheet and dialog the kit shows.
-///
-/// Each one hands back exactly one result, even when the host tears the stack
-/// down underneath it, and closing never touches a route the host pushed.
+/// Opens and closes kit routes; each resolves once, even if removed externally.
 abstract final class FcNavigator {
-  /// Pushes a full-screen page.
-  ///
-  /// Unlike `Navigator.push`, completes with `null` when the route is removed
-  /// without a result, e.g. by `pushAndRemoveUntil`.
   static Future<T?> push<T extends Object?>(
     BuildContext context,
     WidgetBuilder builder, {
@@ -20,7 +13,6 @@ abstract final class FcNavigator {
     _FcPageRoute<T>(builder: builder, animate: animate),
   );
 
-  /// Shows a modal bottom sheet, with the same guarantee as [push].
   static Future<T?> showSheet<T extends Object?>(
     BuildContext context,
     WidgetBuilder builder, {
@@ -57,7 +49,6 @@ abstract final class FcNavigator {
     );
   }
 
-  /// Shows a dialog on the root navigator, with the same guarantee as [push].
   static Future<T?> showDialog<T extends Object?>(
     BuildContext context,
     WidgetBuilder builder, {
@@ -78,11 +69,7 @@ abstract final class FcNavigator {
     );
   }
 
-  /// Closes the route that owns [context] with [result].
-  ///
-  /// Removes that exact route even if something was pushed on top of it, so a
-  /// host dialog is never closed by mistake. Returns `false` when the route is
-  /// already gone or is the navigator's first route.
+  /// Removes the route owning [context], never a host route pushed above it.
   static bool close<T extends Object?>(BuildContext context, [T? result]) {
     final route = ModalRoute.of(context);
     if (route == null || !route.isActive || route.isFirst) return false;
@@ -105,7 +92,6 @@ abstract final class FcNavigator {
   }
 }
 
-/// Completes [outcome] exactly once: with the result, or `null` on removal.
 mixin _CompletesOnce<T> on Route<T> {
   final Completer<T?> _outcome = Completer<T?>();
 
@@ -119,7 +105,7 @@ mixin _CompletesOnce<T> on Route<T> {
 
   @override
   void dispose() {
-    // Routes removed without completing never call didComplete.
+    // Routes removed without a result never call didComplete.
     if (!_outcome.isCompleted) _outcome.complete(null);
     super.dispose();
   }

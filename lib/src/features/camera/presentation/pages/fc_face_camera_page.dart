@@ -13,11 +13,7 @@ import '../widgets/fc_face_frame_panel.dart';
 import '../widgets/fc_face_ring.dart';
 import '../widgets/fc_face_viewport.dart';
 
-/// The face-detection frame: front camera inside a circle with a status ring,
-/// one hint, and a shutter.
-///
-/// Purely visual. It knows nothing about faces: the owner runs [camera] and
-/// decides everything shown through [status].
+/// Face camera UI: oval preview, ring, hint, shutter; driven by [status].
 class FcFaceCameraPage extends StatelessWidget {
   const FcFaceCameraPage({
     required this.camera,
@@ -37,7 +33,6 @@ class FcFaceCameraPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Always dark: a camera surface, whatever the host theme.
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
@@ -45,8 +40,7 @@ class FcFaceCameraPage extends StatelessWidget {
           BlocBuilder<FcCameraCubit, FcCameraState>(
             bloc: camera,
             builder: (context, state) => switch (state) {
-              // A frozen photo, the steps or the outcome don't need the
-              // camera: keep them up while it is released or reopening.
+              // Non-live screens stay up while the camera reopens.
               _ when !status.isLive => _Frame(
                 status: status,
                 preview: const SizedBox.shrink(),
@@ -88,9 +82,6 @@ class FcFaceCameraPage extends StatelessWidget {
   }
 }
 
-/// The live frame: viewport, ring, panel and shutter, laid out around the
-/// oval so nothing overlaps on any screen: hint above the oval and controls
-/// below it in portrait, all beside it in landscape.
 class _Frame extends StatelessWidget {
   const _Frame({
     required this.status,
@@ -149,7 +140,6 @@ class _Frame extends StatelessWidget {
                 ),
               )
             else ...[
-              // Between the close button and the oval.
               Positioned(
                 left: 24,
                 right: 24,
@@ -161,7 +151,6 @@ class _Frame extends StatelessWidget {
                 left: 24,
                 right: 24,
                 top: oval.bottom + 24,
-                // The shutter's room is only kept while it's on screen.
                 bottom: padding.bottom + (status.showsShutter ? 120 : 24),
                 child: SingleChildScrollView(child: panel),
               ),
@@ -179,7 +168,6 @@ class _Frame extends StatelessWidget {
   }
 }
 
-/// Visible only while live with no buttons offered; enabled only when green.
 class _Shutter extends StatelessWidget {
   const _Shutter({required this.status, required this.onShutter});
 

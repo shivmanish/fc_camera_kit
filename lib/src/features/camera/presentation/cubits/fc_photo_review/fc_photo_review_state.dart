@@ -4,7 +4,6 @@ import 'package:equatable/equatable.dart';
 import '../../../../../core/image/edit/fc_crop_geometry.dart';
 import '../../../../../core/image/edit/fc_photo_edit.dart';
 
-/// The shot under review, and the editor's working copy while it is open.
 final class FcPhotoReview extends Equatable {
   const FcPhotoReview({
     required this.photo,
@@ -15,12 +14,10 @@ final class FcPhotoReview extends Equatable {
 
   final XFile photo;
 
-  /// The crop and turn the user kept; shown on review, applied on use.
   final FcPhotoEdit edit;
   final FcCropAspect aspect;
 
-  /// The editor's working copy; `null` while just reviewing. Cancel drops it,
-  /// Done keeps it.
+  /// Editor working copy; `null` outside the editor.
   final FcPhotoDraft? draft;
 
   bool get editing => draft != null;
@@ -38,14 +35,12 @@ final class FcPhotoDraft extends Equatable {
   final FcPhotoEdit edit;
   final FcCropAspect aspect;
 
-  /// Nothing to reset.
   bool get isPristine => edit.isNone && aspect == FcCropAspect.free;
 
   @override
   List<Object?> get props => [edit, aspect];
 }
 
-/// What the camera hands back: the accepted shot and how to turn and crop it.
 final class FcReviewedPhoto extends Equatable {
   const FcReviewedPhoto(
     this.file, {
@@ -56,7 +51,7 @@ final class FcReviewedPhoto extends Equatable {
   final XFile file;
   final FcPhotoEdit edit;
 
-  /// When the shutter was pressed; `null` for a gallery pick.
+  /// `null` for a gallery pick.
   final DateTime? takenAt;
 
   @override

@@ -11,15 +11,10 @@ import 'domain/repositories/fc_scan_repository.dart';
 import 'presentation/pages/fc_scanner_page.dart';
 
 extension FcCameraKitScan on FcCameraKit {
-  /// Replaces the platform scanner in tests.
   @visibleForTesting
   static FcScanRepository? debugRepository;
 
-  /// Scans a document and returns the finished pages. Never throws.
-  ///
-  /// Arguments left `null` come from `init(...)`; the stamp ones match
-  /// `capture()`. A call made while a scan is running gets that scan's result
-  /// instead of opening a second one.
+  /// Document scan; a call during a running scan gets that scan's result.
   Future<FcResult<FcScanResult>> scan(
     BuildContext context, {
     int? maxPages,

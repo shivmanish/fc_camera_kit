@@ -5,7 +5,7 @@ import 'package:fc_camera_kit/fc_camera_kit.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// A solid PNG to stamp, built through the same canvas path the renderer uses.
+/// Solid PNG built through the renderer's own canvas path.
 Future<Uint8List> solidImage(int width, int height) async {
   final recorder = ui.PictureRecorder();
   ui.Canvas(
@@ -165,7 +165,7 @@ void main() {
         FcPhotoMetadata(
           capturedAt: capturedAt,
           app: const FcApp(
-            name: 'SarvaSarathi COS',
+            name: 'FC Camera Kit Example',
             version: '2.17.6',
             environment: FcEnvironment.production,
           ),
@@ -173,7 +173,7 @@ void main() {
         dateFormat,
       );
 
-      expect(lines.last, 'SarvaSarathi COS');
+      expect(lines.last, 'FC Camera Kit Example');
     });
 
     test('calls out the build outside production', () {
@@ -181,7 +181,7 @@ void main() {
         FcPhotoMetadata(
           capturedAt: capturedAt,
           app: const FcApp(
-            name: 'SarvaSarathi COS',
+            name: 'FC Camera Kit Example',
             version: '2.17.6',
             environment: FcEnvironment.uat,
           ),
@@ -189,7 +189,7 @@ void main() {
         dateFormat,
       );
 
-      expect(lines.last, 'SarvaSarathi COS 2.17.6 (UAT)');
+      expect(lines.last, 'FC Camera Kit Example 2.17.6 (UAT)');
     });
 
     test('joins maker and model on the device line', () {
@@ -270,8 +270,7 @@ void main() {
         dateFormat: dateFormat,
       );
 
-      // The strip is capped at half the width, so long text wraps inside it
-      // rather than stretching the canvas.
+      // Strip is capped at half width, so long text wraps instead of widening.
       expect(
         (width: stamped.width, height: stamped.height),
         (width: 800, height: 600),

@@ -12,8 +12,7 @@ import '../../../domain/entities/fc_face_result.dart';
 import '../../../domain/repositories/fc_face_repository.dart';
 import 'fc_face_session_state.dart';
 
-/// The taken selfie → a finished [FcFaceResult]. Always ends in completed or
-/// failed, and leaves no file behind on failure.
+/// Turns the taken selfie into an [FcFaceResult]; leaves no file on failure.
 class FcFaceSessionCubit
     extends FcCubit<FcFaceSessionState, FcFaceResult, XFile> {
   FcFaceSessionCubit({FcFaceRepository? repository, DateTime Function()? clock})
@@ -51,7 +50,7 @@ class FcFaceSessionCubit
         );
 
     final capturedAt = _now();
-    // Gathering the stamp's data (location, address) is part of stamping.
+    // Gathering stamp data (location, address) counts as the stamping stage.
     safeEmit(progress(stamp != null ? FcImageStage.stamping : null));
     try {
       final metadata = await resolveMetadata();
@@ -76,7 +75,7 @@ class FcFaceSessionCubit
       if (image == null) {
         return await _fail(processed.failureOrNull!, photo.path);
       }
-      // Nobody is waiting any more; leave nothing on disk.
+      // No one is waiting now; clean up the file.
       if (isClosed) return await _repository.discard(image.file.path);
 
       safeEmit(
@@ -100,10 +99,8 @@ class FcFaceSessionCubit
     }
   }
 
-  /// Ends in failure; for failures raised outside the cubit.
   void fail(FcCameraFailure failure) => safeEmit(FcFaceSessionFailed(failure));
 
-  /// Back to waiting for the shutter, e.g. after Try again.
   void reset() => safeEmit(const FcFaceSessionLive());
 
   Future<void> _fail(FcCameraFailure failure, String photoPath) async {

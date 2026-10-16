@@ -27,7 +27,7 @@ final class FcFaceRepositoryImpl implements FcFaceRepository {
         stamp: stamp,
         onStage: onStage,
       );
-      // The raw camera file is ours to remove once the result exists.
+      // The raw camera file is ours; remove it once the result exists.
       await FcImageStore.deleteQuietly(capture.file.path);
       return fcSuccess(image);
     } on FcCameraException catch (error) {

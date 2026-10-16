@@ -3,32 +3,41 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   FcApp app(FcEnvironment environment) => FcApp(
-    name: 'SarvaSarathi COS',
+    name: 'FC Camera Kit Example',
     version: '2.17.6',
     environment: environment,
   );
 
   group('software', () {
     test('is name and version in production', () {
-      expect(app(FcEnvironment.production).software, 'SarvaSarathi COS 2.17.6');
+      expect(
+        app(FcEnvironment.production).software,
+        'FC Camera Kit Example 2.17.6',
+      );
     });
 
     test('calls out the build outside production', () {
-      expect(app(FcEnvironment.uat).software, 'SarvaSarathi COS 2.17.6 (UAT)');
+      expect(
+        app(FcEnvironment.uat).software,
+        'FC Camera Kit Example 2.17.6 (UAT)',
+      );
       expect(
         app(FcEnvironment.development).software,
-        'SarvaSarathi COS 2.17.6 (DEV)',
+        'FC Camera Kit Example 2.17.6 (DEV)',
       );
     });
   });
 
   group('stampLine', () {
     test('is the name alone in production', () {
-      expect(app(FcEnvironment.production).stampLine, 'SarvaSarathi COS');
+      expect(app(FcEnvironment.production).stampLine, 'FC Camera Kit Example');
     });
 
     test('shows version and build outside production', () {
-      expect(app(FcEnvironment.uat).stampLine, 'SarvaSarathi COS 2.17.6 (UAT)');
+      expect(
+        app(FcEnvironment.uat).stampLine,
+        'FC Camera Kit Example 2.17.6 (UAT)',
+      );
     });
   });
 }

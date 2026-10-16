@@ -124,8 +124,7 @@ void main() {
       },
       build: build,
       verify: (cubit) {
-        // The permission sheet must not appear for a disabled service — it
-        // cannot turn GPS on. Only the location dialog can.
+        // A disabled service gets the location dialog, never the sheet.
         expect(cubit.state.allGranted, isTrue);
         expect(cubit.state.serviceEnabled, isFalse);
       },
@@ -228,7 +227,7 @@ void main() {
         try {
           await cubit.requestAll();
         } catch (_) {
-          // surfaced to the caller; the state must still be usable
+          // rethrown to the caller; state must stay usable
         }
       },
       verify: (cubit) => expect(cubit.state.busy, isFalse),
@@ -259,8 +258,7 @@ void main() {
     });
 
     test('loaded with no statuses is NOT granted', () {
-      // `[].every(...)` is vacuously true — this pins the gate shut when a
-      // status read fails and leaves the map empty.
+      // An empty status map must keep the gate shut (`every` on [] is true).
       const state = FcPermissionState(required: _required, loaded: true);
 
       expect(state.allGranted, isFalse);

@@ -19,10 +19,7 @@ import '../fc_scan/fc_scan_cubit.dart';
 import '../fc_scan/fc_scan_state.dart';
 import 'fc_scanner_screen_state.dart';
 
-/// Runs the scanner screen: settings, the location permission, the scan,
-/// retries, and the single outcome.
-///
-/// Owns the scan cubit and closes it with itself.
+/// Scanner screen flow; owns and closes the scan cubit.
 class FcScannerScreenCubit
     extends FcCubit<FcScannerScreenState, FcScanResult, void> {
   FcScannerScreenCubit({
@@ -63,8 +60,7 @@ class FcScannerScreenCubit
   FcScanProcessing? _progress;
   bool _starting = false;
 
-  /// After the first frame, so this route is underneath when the platform
-  /// scanner closes, and the screen is listening for permission requests.
+  /// Call after the first frame so this route sits under the closing scanner.
   Future<void> start() async {
     await SchedulerBinding.instance.endOfFrame;
     await _begin();
@@ -86,18 +82,16 @@ class FcScannerScreenCubit
     await _run();
   }
 
-  /// Close on the error view.
   void cancel() {
     _reporter.cancelled();
     safeEmit(FcScannerLeaving(progress: _progress));
   }
 
-  /// A system back that did close the route is a cancel.
+  /// A back that closed the route counts as a cancel.
   void systemBack({required bool didPop}) {
     if (didPop) _reporter.cancelled();
   }
 
-  /// The route didn't close; [stillShown] when it is still on screen.
   void routeNotClosed({required bool stillShown}) {
     if (!stillShown || isClosed) return;
     final leaving = state;
@@ -181,7 +175,7 @@ class FcScannerScreenCubit
     final kit = FcCameraKit.instance;
     if (!_needsLocation) return fcSuccess(kit.buildMetadata());
 
-    // Permission was already cleared; never prompt twice.
+    // Already granted earlier; avoid a second prompt.
     final location = await FcLocationPermission.instance.getCurrentLocation(
       resolveAddress: true,
       requestIfNeeded: false,
@@ -213,8 +207,7 @@ class FcScannerScreenCubit
     }
   }
 
-  /// The host takes the failure when it can; otherwise the screen offers a
-  /// retry.
+  /// Hands the failure to the host if it can, else offers a retry.
   void _failed(FcCameraFailure failure) {
     if (_reporter.handlesFailures) {
       _reporter.failed(failure);
@@ -226,7 +219,7 @@ class FcScannerScreenCubit
 
   @override
   Future<void> close() async {
-    // Report first: the host hears the screen went the moment it goes.
+    // Report first so the host learns of the close immediately.
     _reporter.dispose();
     await Future.wait([_subscription.cancel(), _scan.close()]);
     return super.close();

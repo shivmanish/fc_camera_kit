@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../permissions/fc_permission_type.dart';
 
-/// Shared look for the kit's sheets and dialogs.
-///
-/// Every colour comes from the host app's [ColorScheme], so the kit inherits
-/// the app's brand and light/dark mode instead of imposing its own palette.
+/// Shared sheet and dialog styling; colours always come from the host theme.
 abstract final class FcUi {
   static const double sheetRadius = 28;
   static const double dialogRadius = 28;
@@ -20,7 +17,6 @@ abstract final class FcUi {
   };
 }
 
-/// Rounded, tinted icon container. The kit's one recurring visual motif.
 class FcIconBadge extends StatelessWidget {
   const FcIconBadge({
     required this.icon,
@@ -34,7 +30,6 @@ class FcIconBadge extends StatelessWidget {
   final double size;
   final Color? color;
 
-  /// Muted treatment, for a row that is already satisfied.
   final bool subdued;
 
   @override
@@ -58,7 +53,6 @@ class FcIconBadge extends StatelessWidget {
   }
 }
 
-/// Full width primary action, sized consistently across sheet and dialog.
 class FcPrimaryButton extends StatelessWidget {
   const FcPrimaryButton({
     required this.label,
@@ -89,9 +83,7 @@ class FcPrimaryButton extends StatelessWidget {
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1,
           ),
-          // A button that is busy is not a button that is dead. Keep the filled
-          // treatment while loading instead of dropping to the grey disabled
-          // palette, which reads as "broken".
+          // Stay filled while busy; the grey disabled look reads as broken.
           disabledBackgroundColor: busy
               ? scheme.primary.withValues(alpha: 0.75)
               : null,
@@ -112,11 +104,6 @@ class FcPrimaryButton extends StatelessWidget {
   }
 }
 
-/// Grabber at the top of a sheet.
-///
-/// Purely a signal: it tells the eye this surface is a sheet rather than a
-/// page, which is what makes a modal read as dismissible even when the close
-/// action lives elsewhere.
 class FcSheetGrabber extends StatelessWidget {
   const FcSheetGrabber({super.key});
 
@@ -136,10 +123,6 @@ class FcSheetGrabber extends StatelessWidget {
   }
 }
 
-/// Circular dismiss affordance for the top-right of a sheet or dialog.
-///
-/// Replaces a text button at the bottom: it sits out of the reading path, so
-/// the primary action stays the only thing competing for attention.
 class FcCloseButton extends StatelessWidget {
   const FcCloseButton({required this.onPressed, super.key});
 

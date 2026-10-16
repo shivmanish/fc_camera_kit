@@ -3,15 +3,12 @@ import 'package:fc_camera_kit/fc_camera_kit.dart';
 import 'home_state.dart';
 
 /// Drives the demo screen.
-///
-/// Deliberately holds no `BuildContext`: `FcPermissionGate.ensure` needs one,
-/// so the widget runs the gate and calls [refreshAccess] afterwards.
+/// Context-free: the page runs the permission gate, then [refreshAccess].
 class HomeCubit extends FcCubit<HomeState, void, void> {
   HomeCubit() : super(initialState: const HomeState());
 
   FcCameraKit get _kit => FcCameraKit.instance;
 
-  /// Reads the user seeded in `main()` plus the current access state.
   Future<void> load() async {
     safeEmit(
       state.copyWith(
@@ -24,7 +21,6 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
     _syncMetadata();
   }
 
-  /// Re-reads permission statuses and the device location toggle.
   Future<void> refreshAccess() async {
     safeEmit(state.copyWith(checkingAccess: true));
     try {
@@ -74,12 +70,10 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
   void captureStarted() =>
       safeEmit(state.copyWith(capturing: true, clearCaptureError: true));
 
-  /// Records whatever `FcCameraKit.capture` handed back.
-  ///
-  /// A cancellation is not surfaced as an error — the user chose it.
+  /// A cancelled capture is not treated as an error.
   void captureFinished(FcResult<FcCaptureResult> result) {
     result.when(
-      // Newest first, so the most recent shot is where the eye lands.
+      // Newest first.
       success: (capture) =>
           safeEmit(state.copyWith(captures: [capture, ...state.captures])),
       failure: (failure) => safeEmit(
@@ -93,7 +87,6 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
     _syncMetadata();
   }
 
-  /// Records whatever `FcCameraKit.scan` handed back.
   void scanFinished(FcResult<FcScanResult> result) {
     result.when(
       success: (scan) =>
@@ -108,7 +101,6 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
     safeEmit(state.copyWith(capturing: false));
   }
 
-  /// Records whatever `FcCameraKit.scanFace` handed back.
   void faceScanFinished(FcResult<FcFaceResult> result) {
     result.when(
       success: (face) =>
@@ -126,7 +118,6 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
   void dismissCaptureError() =>
       safeEmit(state.copyWith(clearCaptureError: true));
 
-  /// Applies to the kit, so the next capture picks it up with no other wiring.
   void setPlacement(StampPlacement placement) {
     _kit.setPlacement(placement);
     safeEmit(state.copyWith(placement: placement));
@@ -134,7 +125,6 @@ class HomeCubit extends FcCubit<HomeState, void, void> {
 
   void setStampScans(bool stamp) => safeEmit(state.copyWith(stampScans: stamp));
 
-  /// Rebuilds the preview so it always reflects the current user and fix.
   void _syncMetadata() => safeEmit(
     state.copyWith(metadata: _kit.buildMetadata(location: state.location)),
   );

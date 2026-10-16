@@ -3,48 +3,38 @@ import 'package:flutter/widgets.dart';
 
 import '../../domain/entities/fc_camera_frame.dart';
 
-/// A live camera: preview, analysis frames and one photo at a time.
-///
-/// Throws `FcCameraException`s. Every method is safe to call in any order
-/// after [close]; they become no-ops rather than throwing.
+/// Live camera: preview, analysis frames, photos; calls after [close] no-op.
 abstract interface class FcLiveCamera {
   Future<void> open({
     FcCameraLens lens = FcCameraLens.front,
     FcCameraResolution resolution = FcCameraResolution.analysis,
   });
 
-  /// Width ÷ height of the sensor's frames (landscape, so above 1); `null`
-  /// until opened.
+  /// Landscape sensor ratio, so above 1.
   double? get sensorAspectRatio;
 
-  /// The sides this device has a camera on; known once `open()` has run, even
-  /// if it failed.
+  /// Filled by `open()` even when it fails.
   Set<FcCameraLens> get lenses;
 
-  /// Sets the flash for the next photo. Throws when the camera refuses it.
   Future<void> setFlash(FcFlashMode mode);
 
-  /// The zoom range of the open lens; both 1 until opened.
   double get minZoom;
   double get maxZoom;
 
   Future<void> setZoom(double level);
 
-  /// Locks the preview, photos and frame rotation to the screen's
-  /// orientation, so all three match what the user sees.
+  /// Locks preview, photos and frame rotation to the screen orientation.
   Future<void> lockOrientation({required bool landscape});
 
   FcCameraLens get lens;
 
   Widget buildPreview();
 
-  /// Delivers frames until [stopFrames]; the caller drops ones it can't keep
-  /// up with.
   Future<void> startFrames(void Function(FcCameraFrame frame) onFrame);
 
   Future<void> stopFrames();
 
-  /// Stops frames first; they stay stopped until [startFrames] again.
+  /// Stops frames; call [startFrames] again to resume.
   Future<XFile> takePicture();
 
   Future<void> close();
