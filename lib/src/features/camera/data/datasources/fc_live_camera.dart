@@ -8,11 +8,27 @@ import '../../domain/entities/fc_camera_frame.dart';
 /// Throws `FcCameraException`s. Every method is safe to call in any order
 /// after [close]; they become no-ops rather than throwing.
 abstract interface class FcLiveCamera {
-  Future<void> open({FcCameraLens lens = FcCameraLens.front});
+  Future<void> open({
+    FcCameraLens lens = FcCameraLens.front,
+    FcCameraResolution resolution = FcCameraResolution.analysis,
+  });
 
   /// Width ÷ height of the sensor's frames (landscape, so above 1); `null`
   /// until opened.
   double? get sensorAspectRatio;
+
+  /// The sides this device has a camera on; known once `open()` has run, even
+  /// if it failed.
+  Set<FcCameraLens> get lenses;
+
+  /// Sets the flash for the next photo. Throws when the camera refuses it.
+  Future<void> setFlash(FcFlashMode mode);
+
+  /// The zoom range of the open lens; both 1 until opened.
+  double get minZoom;
+  double get maxZoom;
+
+  Future<void> setZoom(double level);
 
   /// Locks the preview, photos and frame rotation to the screen's
   /// orientation, so all three match what the user sees.

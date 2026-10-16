@@ -8,6 +8,8 @@ library;
 // one. Re-exported so host apps need not depend on dartz themselves.
 export 'package:dartz/dartz.dart' show Either, Left, Right;
 
+// App — which host app and build a photo came from.
+export 'src/core/config/fc_app.dart';
 // Config — the FcCameraKit singleton, FcUser and package defaults.
 export 'src/core/config/fc_camera_kit.dart';
 export 'src/core/config/fc_cubit.dart';
@@ -40,8 +42,6 @@ export 'src/core/ui/fc_ui.dart';
 // Result plumbing.
 export 'src/core/utils/fc_result.dart';
 // Feature: capture — acquiring a photo from camera or gallery.
-export 'src/features/capture/cubit/fc_capture_cubit.dart';
-export 'src/features/capture/cubit/fc_capture_state.dart';
 export 'src/features/capture/fc_capture_flow.dart';
 export 'src/features/capture/fc_capture_requirements.dart';
 export 'src/features/capture/fc_capture_result.dart';

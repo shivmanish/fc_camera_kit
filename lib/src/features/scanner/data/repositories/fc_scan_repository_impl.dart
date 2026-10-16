@@ -63,7 +63,7 @@ final class FcScanRepositoryImpl implements FcScanRepository {
           height: image.height,
           wasCompressed: image.wasCompressed,
           quality: image.quality,
-          metadata: embedded || image.stamped ? metadata : null,
+          metadata: embedded || image.stamped ? image.metadata : null,
         ),
       );
     } on FcCameraException catch (error) {

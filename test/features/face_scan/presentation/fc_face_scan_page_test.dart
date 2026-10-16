@@ -16,6 +16,7 @@ import 'package:mocktail/mocktail.dart';
 
 import '../../../helpers/fake_face_detector.dart';
 import '../../../helpers/fake_live_camera.dart';
+import '../../../helpers/fc_test_app.dart';
 
 class _MockRepository extends Mock implements FcFaceRepository {}
 
@@ -48,7 +49,7 @@ void main() {
 
   setUp(() async {
     FcCameraKit.reset();
-    await FcCameraKit.instance.init();
+    await FcCameraKit.instance.init(app: fcTestApp);
     FcFaceScanPage.debugPermissionGate = (_, _) async => true;
     savedMirrored = [];
     FcFaceScanPage.debugSaveFrame = (frame, {required mirror}) async {

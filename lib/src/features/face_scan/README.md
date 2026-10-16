@@ -48,7 +48,7 @@ final result = await FcCameraKit.instance.scanFace(context,
 ```dart
 await FcCameraKit.instance.init(
   user: (id: 'EMP-2291', name: 'Asha Verma'),
-  maxBytes: 1024 * 1024,                    // shared with capture() and scan()
+  maxMb: 1,                                 // shared with capture() and scan()
   placement: StampPlacement.extend,         // shared stamp settings, as for capture() and scan()
   faceScan: const FcFaceScanOptions(
     blinks: 1,                              // blinks needed before green
@@ -205,7 +205,7 @@ final class FcFaceResult extends Equatable {
 
 **Which image:**
 - `file` is the selfie as the camera took it: front lens, **unmirrored** (as others see you, not as
-  a mirror), upright, JPEG, compressed under `maxBytes`, in the app-private directory, never the
+  a mirror), upright, JPEG, compressed under `maxMb`, in the app-private directory, never the
   gallery.
 - With `stamp: true` the who / when / where stamp is burned in, and `stamped` is `true`.
 - With `embedMetadata: true` the who / when / where (plus "Used by") is in its EXIF.
@@ -592,7 +592,7 @@ phones.
 | Red → green | < 150 ms after the blink completes | The tracker runs on each detection; the ring animates 200 ms |
 | Rebuilds while live | Ring painter + hint text only | Live state emits only on hint / ready changes |
 | Camera open | < 800 ms to first preview frame | Opened right after the permission gate, at `ResolutionPreset.high` |
-| Capture → result (offline) | < 1 s | Compress once to `maxBytes`, EXIF after |
+| Capture → result (offline) | < 1 s | Compress once to `maxMb`, EXIF after |
 
 Measured with DevTools in the example app on the device matrix before each step is closed.
 
@@ -680,7 +680,7 @@ The user frames their face, blinks, takes the selfie, and gets back the photo wi
 | F4 | Session offline: capture → [stamp] → compress → [EXIF] with steps on screen → brief ✓ → `FcFaceResult`; stamp options and parameters; location fetched while framing; `scanFace()`; `FcFaceScanPage` callbacks; exports | Session cubit; stamp on/off and placement override (as the scanner tests); exactly-once return incl. stack cleared; double-tap capture |
 | F5 | Example app (offline), README, CHANGELOG, **device matrix**: low-end Android, Samsung, Xiaomi/Redmi, one iPhone | Manual checklist from §8 on each device |
 
-**Phase 1 public API:** `scanFace(context, {blinks, maxBytes, embedMetadata, stamp, placement, dateFormat, style})` and
+**Phase 1 public API:** `scanFace(context, {blinks, maxMb, embedMetadata, stamp, placement, dateFormat, style})` and
 `FcFaceScanPage(onCompleted, onCancelled, onFailed)`. No verification parameters yet.
 
 ### Phase 2: online verification

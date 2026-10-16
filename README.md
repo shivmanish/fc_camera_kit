@@ -8,23 +8,24 @@ only**.
 
 | | |
 |---|---|
-| Platforms | Android 6.0 (API 23)+, iOS 13+ |
+| Version | 1.0.0 — see [CHANGELOG](CHANGELOG.md) |
+| Platforms | Android 6.0 (API 23)+, iOS 15.5+ |
 | Dart / Flutter | Dart 3.9, Flutter 3.35+ |
 | State management | `flutter_bloc` (Cubit) |
-| Status | Phase 1 of 7 — scaffold complete |
 
 ---
 
 ## Table of contents
 
 1. [What it does](#what-it-does)
-2. [Roadmap](#roadmap)
+2. [Features](#features)
 3. [Install](#install)
 4. [Platform setup](#platform-setup)
-5. [Architecture](#architecture)
-6. [Why `XFile` and not `File`](#why-xfile-and-not-file)
-7. [Planned API](#planned-api)
-8. [Development](#development)
+5. [Usage](#usage)
+6. [What you get back](#what-you-get-back)
+7. [Architecture](#architecture)
+8. [Why `XFile` and not `File`](#why-xfile-and-not-file)
+9. [Development](#development)
 
 ---
 
@@ -38,35 +39,92 @@ enough to upload over a weak connection.
 `fc_camera_kit` is that whole pipeline behind one call:
 
 ```
-capture ──▶ resolve context ──▶ stamp ──▶ write EXIF ──▶ compress to budget ──▶ XFile
-           (user, time, GPS)   (pixels)   (metadata)     (≤ maxBytes)
+capture() ──▶ in-app camera ──▶ review (crop / rotate) ──▶ resolve context ──▶ stamp ──▶ compress ──▶ EXIF ──▶ XFile
+                                                          (user, time, GPS)   (pixels)  (≤ maxMb)   (metadata)
 ```
 
-Two stamp placements, selected by parameter:
+### The camera
+
+New photos are always taken on the kit's **own camera screen, inside the host
+app**. The system camera app is never used: it sends the host to the
+background, and Android kills background apps to free memory — on a
+low-memory phone the user comes back to a restarted app and the photo is lost.
+
+```
+live preview ─► shutter ─► review ─┬─ Retake ─────────► live preview (shot deleted)
+  flash auto / on / off            ├─ Crop & rotate ──► editor ─► Done / Cancel ─► review
+  pinch zoom · lens switch         └─ Use photo ──────► stamp · compress · EXIF ─► XFile
+```
+
+| Screen | What the user can do |
+|---|---|
+| Live | Flash auto → on → off (kept across reopens), pinch zoom, switch front / back, shutter. Back lens at 1080p |
+| Review | Pinch or double-tap to check sharpness. **Retake**, **Crop**, **Use photo**. A note says the stamp is added next |
+| Crop & rotate | Drag corners or edges to resize, the middle to move. Shapes: Free, Original, Square. **Rotate** a quarter turn, **Reset**. Cancel / Done |
+
+- **Back** steps out one level: editor → review → retake.
+- Rejected and abandoned shots are deleted at once.
+- The photo follows the screen's orientation, as the preview shows it. A
+  portrait-locked app gets portrait photos; **Rotate** turns them.
+- Crop and rotate are kept as numbers and applied once, when the photo is
+  stamped: no extra encode, no quality lost.
+
+### The stamp
+
+Two placements, selected by parameter:
 
 | Mode | What it looks like | Trade-off |
 |---|---|---|
 | `StampPlacement.overlay` | Translucent footer drawn **on top of** the photo, bottom-aligned | Original aspect ratio preserved; covers part of the image |
 | `StampPlacement.extend` | Canvas grown **below** the photo, text on a solid strip | Nothing is hidden; aspect ratio changes |
 
+Lines, each dropped when empty:
+
+```
+Asha Verma  ·  EMP-2291  ·  Field Officer
+14 Oct 2026, 05:10 PM
+Baner, Pune, Maharashtra, 411069, India  ·  (18.561363, 73.785491)
+Samsung | SM-A145                       (only with includeDeviceInStamp)
+SarvaSarathi COS                        (production; UAT: SarvaSarathi COS 2.17.6 (UAT))
+```
+
+A fix from a mock-location app is not refused: the location line ends in
+`(MOCKED)`, and EXIF and `metadata.location.isMocked` say so too.
+
+### The EXIF
+
+| Tag | Value |
+|---|---|
+| `Artist` | `name \| id \| role \| branch` |
+| `DateTimeOriginal` / `DateTimeDigitized` / `DateTime` | the shutter press |
+| `OffsetTime` / `OffsetTimeOriginal` / `OffsetTimeDigitized` | UTC offset, e.g. `+05:30` |
+| `SubSecTime` / `SubSecTimeOriginal` / `SubSecTimeDigitized` | milliseconds |
+| `Make` / `Model` | the device, e.g. `LENOVO` / `TB305XU` |
+| `Orientation` | `1` — rotation is already in the pixels |
+| `Software` | the host app and build: `SarvaSarathi COS 2.17.6`, `(UAT)` / `(DEV)` outside production |
+| `ImageUniqueID` | this file's own id, a UUID v4 as 32 hex digits — also `metadata.imageId` |
+| `UserComment` | `fc_camera_kit` |
+| `ImageDescription` | the address, as stamped; `(MOCKED)` appended for a mock fix |
+| `GPSLatitude` / `GPSLongitude` (+ refs) | where |
+| `GPSProcessingMethod` | `MOCKED` for a mock fix; absent otherwise |
+| `GPSHPositioningError` | fix accuracy, in metres |
+| `GPSDateStamp` / `GPSTimeStamp` | when the fix was taken, UTC |
+| `GPSMapDatum` / `GPSVersionID` | `WGS-84` / `2.3.0.0` |
+
+Text that is not ASCII (e.g. a Devanagari address) is left out of EXIF
+rather than written as `?`; the stamp still shows it. Altitude is not
+written: the platforms report height above the ellipsoid, EXIF means sea
+level.
+
 ---
 
-## Roadmap
+## Features
 
-The package is being built in reviewable slices. Each phase lands with tests,
-docs and a working example screen before the next one starts.
-
-| Phase | Scope | Status |
+| Call | Use for | Status |
 |---|---|---|
-| **1** | **Package scaffold** — pubspec, strict lints, folder skeleton, error/result core, example app, native permission config | ✅ **Done** |
-| 2 | **Core: config singleton** — `SgCameraKit.initialize()`, `SgUserContext`, defaults every feature reads from | ⏳ Next |
-| 3 | **Core: permissions** — one gateway per permission behind a single facade | Planned |
-| 4 | **Core: image pipeline** — compressor, size-cap policy, EXIF reader/writer | Planned |
-| 5 | **Feature: capture** — camera and gallery sources, `CaptureCubit` | Planned |
-| 6 | **Feature: stamping** — overlay / extend renderer, `StampingCubit` | Planned |
-| 7 | **Feature: scanner** — live edge detection, auto-capture, perspective crop, filters, ID/KYC presets ([design](lib/src/features/scanner/README.md)) | Design |
-
-Run the example app to see the same roadmap with live status.
+| `capture()` | A photo from the in-app camera or the gallery, reviewed, stamped, compressed, EXIF written | ✅ |
+| `scan()` | A document: ML Kit Document Scanner (Android) / VisionKit (iOS), edge detection, crop, filters | ✅ — live in-app scanner designed, not built ([design](lib/src/features/scanner/README.md)) |
+| `scanFace()` | A selfie with a blink check (ML Kit), offline | ✅ — online verification designed, not built ([design](lib/src/features/face_scan/README.md)) |
 
 ---
 
@@ -76,13 +134,27 @@ Run the example app to see the same roadmap with live status.
 dependencies:
   fc_camera_kit:
     git:
-      url: https://github.com/sarvagram/fc_camera_kit
-      ref: v0.1.0
+      url: https://github.com/SarvagramHQ/fc_camera_kit.git
+      ref: v1.0.0 # a tag or commit SHA — never a branch
 ```
 
 ```dart
 import 'package:fc_camera_kit/fc_camera_kit.dart';
 ```
+
+### Your app's constraints must fit these
+
+| Package | Range the kit needs | Common clash |
+|---|---|---|
+| `geocoding` | `>=3.0.0 <5.0.0` | 5.x removed the top-level functions |
+| `geolocator` | `>=13.0.2 <15.0.0` | |
+| `camera` | `>=0.11.3 <0.13.0` | |
+| `permission_handler` | `^12.0.1` | 13.x needs AGP 9 |
+| `device_info_plus` | `^12.4.0` | |
+| `image_picker` | `^1.2.2` | |
+| `intl` | `^0.20.2` | |
+
+Android builds need AGP 8.12.1+ and Gradle 8.13+ (from `device_info_plus` 12).
 
 Everything under `lib/src/` is private. If something you need is not exported
 from `fc_camera_kit.dart`, open an issue rather than reaching into `src/` — it
@@ -110,17 +182,20 @@ Two reasons this is not the kit's job to do for you:
 - **iOS makes it impossible.** Usage descriptions must live in the application
   bundle's `Info.plist`. No pod or package can inject them, so host-app setup is
   unavoidable on that platform regardless.
-- **Location is optional here.** `requireLocation` defaults to `false`, and
-  `SgPermissionGate.ensure(required: {SgPermissionType.camera})` is supported. A
+- **Location is optional here.** `requireLocation` defaults to `false`. A
   package that force-merged `ACCESS_FINE_LOCATION` would put a location
   permission — and its Play Store policy burden — on every consumer, including
   the ones who never stamp a location. `geolocator` itself declines to do this
   for the same reason.
 
-> **Strip `RECORD_AUDIO`.** `camera_android_camerax` merges it in because the
-> same plugin also records video. This kit never records audio, so leaving it
-> puts "Microphone" on your Play listing for no reason. The example manifest
-> removes it with `tools:node="remove"` — see below.
+The kit asks for camera and location itself, right before it needs them, with
+its own explanation sheet. Don't request them first.
+
+> **`RECORD_AUDIO`.** `camera_android_camerax` merges it in because the same
+> plugin also records video. The kit never records audio, so if your app
+> doesn't either, strip it — otherwise "Microphone" shows on your Play listing
+> for no reason. The example manifest removes it with `tools:node="remove"`.
+> Keep it if your app records video with sound.
 
 ### Android
 
@@ -144,6 +219,10 @@ defaultConfig {
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
     android:maxSdkVersion="32" />
 
+<!-- only if your app never records audio -->
+<uses-permission android:name="android.permission.RECORD_AUDIO"
+    tools:node="remove" />
+
 <!-- keep camera-less tablets installable -->
 <uses-feature android:name="android.hardware.camera" android:required="false" />
 ```
@@ -164,12 +243,13 @@ denied permission:
 <string>Required by the camera component; audio is never recorded.</string>
 ```
 
-`ios/Podfile` — `permission_handler` compiles **every** permission in unless you
-opt out, and App Review rejects binaries that link a permission with no matching
-usage description. Enable only these three:
+`ios/Podfile` — face detection needs iOS 15.5. `permission_handler` compiles
+**every** permission in unless you opt out, and App Review rejects binaries
+that link a permission with no matching usage description. Enable only these
+three:
 
 ```ruby
-platform :ios, '13.0'
+platform :ios, '15.5'
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
@@ -189,32 +269,147 @@ end
 
 ---
 
+## Usage
+
+### 1. Once, in `main()`, before `runApp`
+
+```dart
+await FcCameraKit.instance.init(
+  maxMb: 2,                          // hard ceiling; fractions work, e.g. 0.5
+  requireLocation: true,             // no GPS fix → no photo
+  placement: StampPlacement.extend,  // or overlay (default)
+  dateFormat: 'dd MMM yyyy, hh:mm a',
+  includeDeviceInStamp: false,       // the device is always in EXIF
+  app: FcApp(                        // required: EXIF Software and a stamp line
+    name: 'SarvaSarathi COS',
+    version: packageInfo.version,    // from package_info_plus
+    environment: FcEnvironment.production, // or uat / development
+  ),
+);
+```
+
+Reading any setting before `init()` throws; `capture()` returns a
+`ConfigurationFailure` instead.
+
+### 2. Whenever the signed-in user is known or changes
+
+```dart
+FcCameraKit.instance.setUser(
+  const FcUser(
+    id: 'EMP-2291',
+    name: 'Asha Verma',
+    role: 'Field Officer', // optional
+    branch: 'Baramati', // required; '' when the user has none
+  ),
+);
+// on logout
+FcCameraKit.instance.clearUser();
+```
+
+Blank fields are dropped, so an unset role or empty branch never leaves a stray
+separator.
+
+### 3. At the call site — one shared helper per app
+
+```dart
+final result = await FcCameraKit.instance.capture(
+  context,
+  source: FcCaptureSource.camera,   // omit to let the kit ask: camera or gallery
+  placement: StampPlacement.extend, // per-call overrides of init()
+);
+
+result.when(
+  success: (photo) => upload(photo.file),
+  failure: (failure) {
+    final message = switch (failure) {
+      CancelledFailure() => null, // the user backed out: not an error
+      LocationFailure() => 'Could not get your location. Turn on GPS.',
+      PermissionFailure(:final permanentlyDenied) when permanentlyDenied =>
+        'Allow camera and location in Settings.',
+      PermissionFailure() => 'Camera and location access are needed.',
+      _ => 'Could not capture the photo. Please try again.',
+    };
+    if (message != null) showError(message);
+  },
+);
+```
+
+`capture()` never throws; every outcome is in the result.
+
+### 4. Use the file as it is
+
+- It is already stamped, compressed and geotagged. **Don't compress or
+  watermark it again** — that loses quality and strips the EXIF.
+- It lives in the app's documents directory (`fc_camera_kit/`), safe across
+  an upload retry or an offline queue. **The kit never deletes it**: delete it
+  once it is uploaded.
+
+---
+
+## What you get back
+
+```dart
+final class FcCaptureResult {
+  final XFile file;              // stamped, compressed, EXIF written
+  final FcPhotoMetadata metadata; // exactly what was stamped and embedded,
+                                  // imageId included: send it with the upload
+  final int sizeBytes;
+  final int width;
+  final int height;
+  final bool wasCompressed;       // false when the first encode already fit
+  final int quality;              // JPEG quality it was encoded at
+}
+```
+
+Failures are one sealed set, so a `switch` over them is exhaustive:
+
+| Failure | Meaning |
+|---|---|
+| `CancelledFailure` | The user backed out. Treat as a no-op |
+| `PermissionFailure` | Access denied; `permanentlyDenied` means only Settings can fix it |
+| `LocationFailure` | No GPS fix in time, or location services off |
+| `CameraFailure` | The camera failed to open or take the photo |
+| `ImageProcessingFailure` | Stamping, cropping or encoding failed |
+| `SizeLimitFailure` | Still over `maxMb` at the lowest quality and size |
+| `StorageFailure` / `MetadataFailure` | Saving the file or writing EXIF failed |
+| `ConfigurationFailure` | `init()` not called, or invalid settings |
+| `UnknownFailure` | Anything else |
+
+`scan()` and `scanFace()` work the same way: one call, an `FcResult`, never a
+throw. Face scan's design notes are in
+[`lib/src/features/face_scan/README.md`](lib/src/features/face_scan/README.md).
+
+---
+
 ## Architecture
 
 Feature-first clean architecture. `core/` holds what more than one feature
-needs; every feature owns its own three layers and depends on nothing in another
-feature.
+needs; features own their own layers.
 
 ```
 lib/
-├── fc_camera_kit.dart              # the only public surface
+├── fc_camera_kit.dart        # the only public surface
 └── src/
     ├── core/
-    │   ├── config/                 # SgCameraKit singleton, SgCameraConfig      (P2)
-    │   ├── permissions/            # one gateway per permission + facade        (P3)
+    │   ├── config/             # FcCameraKit singleton, FcUser, scan / face options
+    │   ├── error/              # FcCameraException (thrown), FcCameraFailure (carried)
     │   ├── image/
-    │   │   ├── compressor/         # quality/resize loop against a byte budget  (P4)
-    │   │   └── metadata/           # EXIF read + write                          (P4)
-    │   ├── error/                  # SgCameraException, SgCameraFailure         ✅
-    │   ├── utils/                  # SgResult and friends                       ✅
-    │   └── di/                     # package-private service locator            (P2)
-    └── features/
-        ├── capture/                # take or pick a photo                       (P5)
-        ├── stamping/               # watermark + metadata                       (P6)
-        └── scanner/                # document scan                              (P7)
-            ├── data/               # datasources · models · repositories
-            ├── domain/             # entities · repositories (abstract) · usecases
-            └── presentation/       # cubit · pages · widgets
+    │   │   ├── compressor/     # quality, then size, against the byte budget
+    │   │   ├── edit/           # crop and quarter turns: numbers until stamped
+    │   │   ├── metadata/       # who / when / where, EXIF writer
+    │   │   └── stamp/          # draws the stamp on a dart:ui canvas
+    │   ├── navigation/         # push / close with exactly one result
+    │   ├── permissions/        # one gateway per permission + facade
+    │   ├── ui/                 # shared sheet and button chrome
+    │   └── utils/              # FcResult and friends
+    ├── features/
+    │   ├── camera/             # live camera, in-app photo camera, review, crop editor
+    │   ├── capture/            # capture(): source, permissions, processing screen
+    │   ├── face_scan/          # scanFace(): framing, blink liveness
+    │   ├── permissions/        # the permission gate and its sheets
+    │   ├── scanner/            # scan(): platform document scanner
+    │   └── stamping/           # stamp → compress → EXIF for a capture
+    └── presentation/           # shared molecules (step list, finished view)
 ```
 
 ### Layer rules
@@ -231,11 +426,11 @@ a widget binding. Repository *interfaces* live in `domain`, implementations in
 
 ### Errors
 
-Data sources **throw** `SgCameraException`. Repositories catch and return
-`SgResult<T>` — a `typedef` over dartz's `Either<SgCameraFailure, T>`, with the
+Data sources **throw** `FcCameraException`. Repositories catch and return
+`FcResult<T>` — a `typedef` over dartz's `Either<FcCameraFailure, T>`, with the
 failure on the **left**. Cubits never `try`/`catch`; they `fold`.
 
-`SgCameraFailure` is `sealed`, so a `switch` over it is exhaustive at compile
+`FcCameraFailure` is `sealed`, so a `switch` over it is exhaustive at compile
 time — adding a failure type breaks every incomplete handler instead of silently
 falling through.
 
@@ -243,30 +438,12 @@ falling through.
 > ours. Where the ordering is easy to misread, use the success-first
 > `when(success:, failure:)` extension instead.
 
-Because `SgResult` is an `Either`, the full combinator set comes for free —
+Because `FcResult` is an `Either`, the full combinator set comes for free —
 `map`, `flatMap`, `getOrElse` — plus `thenFlatMap` for chaining fallible async
-steps without a stair of early returns:
-
-```dart
-final result = await capture()
-    .thenFlatMap(resolveContext)
-    .thenFlatMap(stamp)
-    .thenFlatMap(compress);   // short-circuits on the first failure
-```
+steps without a stair of early returns.
 
 `Either`, `Left` and `Right` are re-exported from `fc_camera_kit.dart`, so host
 apps do **not** need to add dartz to their own `pubspec.yaml`.
-
-```dart
-final message = switch (failure) {
-  PermissionFailure(:final permanentlyDenied) when permanentlyDenied =>
-    'Enable camera access in Settings',
-  SizeLimitFailure(:final actualBytes, :final limitBytes) =>
-    'Photo is ${actualBytes ~/ 1024}KB, limit is ${limitBytes ~/ 1024}KB',
-  CancelledFailure() => null,
-  _ => failure.message,
-};
-```
 
 ### Why Cubit, and why so few `StatefulWidget`s
 
@@ -277,6 +454,8 @@ with no payoff.
 Rebuild discipline the package holds itself to:
 
 - Pages are `StatelessWidget`; state lives in the Cubit, not in `setState`.
+  `StatefulWidget`s are kept for gesture-local state only (a drag in progress,
+  a zoom animation).
 - `BlocBuilder` wraps the **smallest** subtree that actually changes, with
   `buildWhen` guarding it.
 - One-shot effects (snackbars, pops, permission dialogs) go through
@@ -284,6 +463,8 @@ Rebuild discipline the package holds itself to:
 - States are `Equatable`, so an identical state emits no rebuild at all.
 - Anything that does not depend on state is a `const` widget hoisted out of
   `build`.
+- The kit's screens draw their own controls rather than themed Material chips,
+  so a host app's theme can't make them unreadable on the dark camera surface.
 
 ---
 
@@ -298,92 +479,20 @@ cheaply undo.
 | What it is | A handle to a path on a real filesystem | An abstraction over "some readable blob" |
 | Platforms | VM only (Android, iOS, desktop). Importing `dart:io` marks the whole library web-incompatible | Everywhere, including web |
 | API | Sync **and** async; `exists`, `delete`, `rename`, `copy`, `writeAsBytes`, `lengthSync` | Async only; `path`, `name`, `mimeType`, `length()`, `readAsBytes()`, `openRead()`, `saveTo()` |
-| On web | Does not exist | `path` is a `blob:` URL; bytes come from the browser |
 | Ecosystem | What `Image.file` and `MultipartFile.fromFile` take | What `camera.takePicture()`, `ImagePicker.pickImage()` and `file_selector` **return** |
 
 Why `XFile` wins here:
 
-1. **No lossy round-trip.** Both capture sources already hand us an `XFile`.
-   Unwrapping to `File` and re-wrapping at the boundary is work that buys
-   nothing.
-2. **It is the ecosystem's currency.** Returning `XFile` means callers can pass
-   our output straight into anything that accepts media from `image_picker` or
-   `camera`, with no adapter.
-3. **Conversion is trivial, and only in one direction is it free.**
-   `File(xfile.path)` works on every platform this package supports. Going the
-   other way from a web `XFile` is impossible — so `File` in the signature would
-   be a permanent ceiling.
-4. **It costs nothing today.** We are Android/iOS-only, where `xfile.path` is
-   always a real path. `XFile` is simply the option that stays open.
+1. **No lossy round-trip.** The camera and the gallery picker already hand us
+   an `XFile`.
+2. **It is the ecosystem's currency.** Callers can pass the output straight
+   into anything that accepts media from `image_picker` or `camera`.
+3. **Conversion is trivial one way only.** `File(xfile.path)` works on every
+   platform this package supports; the reverse from a web `XFile` doesn't.
 
-The caveat `File` genuinely wins on: `XFile` has no `delete()`, `exists()` or
-sync reads. When the package needs those internally — cleaning up temp files
-between pipeline stages — it uses `dart:io` directly. That is an implementation
-detail, not the public contract.
-
-### What you actually get back
-
-Not a bare file. A result object, so size, dimensions and the resolved metadata
-do not have to be re-derived by every caller:
-
-```dart
-final class SgCaptureResult {
-  final XFile file;            // the stamped, compressed image
-  final SgPhotoMetadata meta;  // who / when / where, as embedded
-  final int sizeBytes;
-  final Size dimensions;
-  final bool wasCompressed;
-}
-
-// dart:io escape hatch, Android/iOS only
-extension SgXFileIo on XFile {
-  File toFile() => File(path);
-}
-```
-
-> One practical note the type system will not tell you: on iOS the camera writes
-> into a temp directory the OS may purge at any time. The pipeline copies its
-> output into an app-owned directory before returning, so the `XFile` you get is
-> safe to hold across an upload retry.
-
----
-
-## Planned API
-
-Target shape as of Phase 1 — it will be confirmed phase by phase.
-
-```dart
-// main.dart, once — Phase 2
-await SgCameraKit.initialize(
-  config: SgCameraConfig(
-    maxBytes: 5 * 1024 * 1024,        // hard ceiling; compress until under it
-    placement: StampPlacement.overlay,
-    dateFormat: 'dd MMM yyyy, hh:mm a',
-    requireLocation: true,
-  ),
-);
-
-// whenever the signed-in user changes
-SgCameraKit.instance.setUserContext(
-  const SgUserContext(name: 'Asha Verma', id: 'EMP-2291'),
-);
-
-// at the call site — Phase 5+
-final result = await SgCameraKit.instance.capture(
-  source: CaptureSource.camera,
-  placement: StampPlacement.extend,   // per-call override
-);
-
-result.fold(
-  (failure) => showError(failure),   // left  = failure
-  (capture) => upload(capture.file), // right = success
-);
-```
-
-`initialize()` is called once; per-call parameters override the config for that
-call only. Nothing is read from global state at stamp time — the resolved
-metadata is passed down explicitly, which is what keeps the stamping use case
-testable without a singleton.
+On Android and iOS `xfile.path` is always a real path, and the pipeline writes
+its output to an app-owned directory, so the file is safe to hold across an
+upload retry.
 
 ---
 

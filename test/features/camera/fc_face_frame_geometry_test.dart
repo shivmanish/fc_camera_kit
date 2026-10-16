@@ -29,15 +29,18 @@ void main() {
       });
     }
 
-    test('portrait leaves room below for the hint and shutter', () {
+    test('portrait centres the oval, room above for the hint, below for the '
+        'shutter', () {
       final oval = FcFaceFrameGeometry.ovalFor(const Size(360, 640));
-      expect(oval.height, lessThanOrEqualTo(640 * 0.58 + 1e-6));
-      expect(640 - oval.bottom, greaterThan(180));
+      expect(oval.height, lessThanOrEqualTo(640 * 0.54 + 1e-6));
+      expect(oval.center.dy, closeTo(320, 1e-6));
+      expect(oval.top, greaterThan(140));
+      expect(640 - oval.bottom, greaterThan(140));
     });
 
     test('a tablet does not get a screen-filling oval', () {
       final oval = FcFaceFrameGeometry.ovalFor(tablet);
-      expect(oval.height, lessThanOrEqualTo(tablet.height * 0.58 + 1e-6));
+      expect(oval.height, lessThanOrEqualTo(tablet.height * 0.54 + 1e-6));
     });
 
     test('landscape puts the oval left, leaving the right for controls', () {

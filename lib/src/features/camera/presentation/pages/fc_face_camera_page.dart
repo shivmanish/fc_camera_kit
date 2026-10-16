@@ -89,8 +89,8 @@ class FcFaceCameraPage extends StatelessWidget {
 }
 
 /// The live frame: viewport, ring, panel and shutter, laid out around the
-/// oval so nothing overlaps on any screen: controls below the oval in
-/// portrait, beside it in landscape.
+/// oval so nothing overlaps on any screen: hint above the oval and controls
+/// below it in portrait, all beside it in landscape.
 class _Frame extends StatelessWidget {
   const _Frame({
     required this.status,
@@ -111,6 +111,7 @@ class _Frame extends StatelessWidget {
         final size = constraints.biggest;
         final oval = FcFaceFrameGeometry.ovalFor(size);
         final padding = MediaQuery.paddingOf(context);
+        final hint = FcFaceFrameHint(status: status);
         final panel = FcFaceFramePanel(
           status: status,
           onAction: (action) => onAction?.call(action),
@@ -135,7 +136,11 @@ class _Frame extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Flexible(child: SingleChildScrollView(child: panel)),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(children: [hint, panel]),
+                      ),
+                    ),
                     if (status.showsShutter) ...[
                       const SizedBox(height: 24),
                       shutter,
@@ -144,10 +149,18 @@ class _Frame extends StatelessWidget {
                 ),
               )
             else ...[
+              // Between the close button and the oval.
               Positioned(
                 left: 24,
                 right: 24,
-                top: oval.bottom + 40,
+                top: padding.top + 56,
+                bottom: size.height - oval.top + 12,
+                child: Center(child: SingleChildScrollView(child: hint)),
+              ),
+              Positioned(
+                left: 24,
+                right: 24,
+                top: oval.bottom + 24,
                 // The shutter's room is only kept while it's on screen.
                 bottom: padding.bottom + (status.showsShutter ? 120 : 24),
                 child: SingleChildScrollView(child: panel),

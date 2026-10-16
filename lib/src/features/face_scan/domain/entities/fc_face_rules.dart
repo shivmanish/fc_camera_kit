@@ -27,7 +27,7 @@ final class FcFaceRules extends Equatable {
   /// reports its real one.
   static const defaultTarget = FcFaceBox(
     left: 0.24,
-    top: 0.15,
+    top: 0.25,
     width: 0.52,
     height: 0.5,
   );

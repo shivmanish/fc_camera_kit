@@ -27,7 +27,17 @@ void main() {
   group('kit wiring', () {
     test('init seeds the user the demo stamps', () async {
       await FcCameraKit.instance.init(
-        user: (id: 'EMP-2291', name: 'Asha Verma'),
+        app: const FcApp(
+          name: 'Test App',
+          version: '1.0.0',
+          environment: FcEnvironment.production,
+        ),
+        user: FcUser(
+          id: 'EMP-2291',
+          name: 'Asha Verma',
+          role: 'Field Officer',
+          branch: 'Baramati',
+        ),
         placement: StampPlacement.extend,
         requireLocation: true,
       );
@@ -40,7 +50,14 @@ void main() {
     test(
       'buildMetadata carries the seeded user into the stamp preview',
       () async {
-        await FcCameraKit.instance.init(user: (id: 'EMP-1', name: 'Asha'));
+        await FcCameraKit.instance.init(
+          app: const FcApp(
+            name: 'Test App',
+            version: '1.0.0',
+            environment: FcEnvironment.production,
+          ),
+          user: FcUser(id: 'EMP-1', name: 'Asha', role: null, branch: ''),
+        );
 
         final meta = FcCameraKit.instance.buildMetadata(
           location: const FcGeoLocation(

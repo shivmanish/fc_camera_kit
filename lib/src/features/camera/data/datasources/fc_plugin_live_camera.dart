@@ -14,7 +14,14 @@ import 'fc_live_camera.dart';
 final class FcPluginLiveCamera implements FcLiveCamera {
   cam.CameraController? _controller;
   FcCameraLens _lens = FcCameraLens.front;
+  Set<FcCameraLens> _lenses = const {};
+  double _minZoom = 1;
+  double _maxZoom = 1;
   bool _closed = false;
+
+  /// The release still running from the last close. A new controller waits
+  /// for it: opening one while the old is mid-release fails on some devices.
+  Future<void>? _disposing;
 
   /// Bumped by every open and close; only the latest open may keep its
   /// controller.
@@ -22,6 +29,15 @@ final class FcPluginLiveCamera implements FcLiveCamera {
 
   @override
   FcCameraLens get lens => _lens;
+
+  @override
+  Set<FcCameraLens> get lenses => _lenses;
+
+  @override
+  double get minZoom => _minZoom;
+
+  @override
+  double get maxZoom => _maxZoom;
 
   @override
   double? get sensorAspectRatio {
@@ -52,7 +68,10 @@ final class FcPluginLiveCamera implements FcLiveCamera {
   }
 
   @override
-  Future<void> open({FcCameraLens lens = FcCameraLens.front}) async {
+  Future<void> open({
+    FcCameraLens lens = FcCameraLens.front,
+    FcCameraResolution resolution = FcCameraResolution.analysis,
+  }) async {
     final token = ++_token;
     _closed = false;
     _lens = lens;
@@ -60,6 +79,13 @@ final class FcPluginLiveCamera implements FcLiveCamera {
 
     final controller = await _guard('open the camera', () async {
       final cameras = await cam.availableCameras();
+      _lenses = {
+        for (final camera in cameras)
+          if (camera.lensDirection == cam.CameraLensDirection.front)
+            FcCameraLens.front
+          else if (camera.lensDirection == cam.CameraLensDirection.back)
+            FcCameraLens.back,
+      };
       final wanted = lens == FcCameraLens.front
           ? cam.CameraLensDirection.front
           : cam.CameraLensDirection.back;
@@ -72,7 +98,10 @@ final class FcPluginLiveCamera implements FcLiveCamera {
 
       final controller = cam.CameraController(
         description,
-        cam.ResolutionPreset.high,
+        switch (resolution) {
+          FcCameraResolution.analysis => cam.ResolutionPreset.high,
+          FcCameraResolution.photo => cam.ResolutionPreset.veryHigh,
+        },
         enableAudio: false,
         // What ML Kit reads directly: no conversion per frame.
         imageFormatGroup: Platform.isIOS
@@ -95,6 +124,9 @@ final class FcPluginLiveCamera implements FcLiveCamera {
       return;
     }
     _controller = controller;
+    final (min, max) = await _zoomRange(controller);
+    _minZoom = min;
+    _maxZoom = max;
   }
 
   @override
@@ -127,6 +159,29 @@ final class FcPluginLiveCamera implements FcLiveCamera {
   }
 
   @override
+  Future<void> setFlash(FcFlashMode mode) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      throw const CameraException('The camera is not open.');
+    }
+    await _guard(
+      'set the flash',
+      () => controller.setFlashMode(switch (mode) {
+        FcFlashMode.auto => cam.FlashMode.auto,
+        FcFlashMode.on => cam.FlashMode.always,
+        FcFlashMode.off => cam.FlashMode.off,
+      }),
+    );
+  }
+
+  @override
+  Future<void> setZoom(double level) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    await _guard('zoom', () => controller.setZoomLevel(level));
+  }
+
+  @override
   Future<XFile> takePicture() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
@@ -144,10 +199,16 @@ final class FcPluginLiveCamera implements FcLiveCamera {
     await _disposeController();
   }
 
-  Future<void> _disposeController() async {
+  /// Releases the current controller, and waits for any release already
+  /// running, so the next open starts on a free camera.
+  Future<void> _disposeController() {
     final controller = _controller;
     _controller = null;
-    if (controller == null) return;
+    if (controller != null) _disposing = _release(controller);
+    return _disposing ?? Future<void>.value();
+  }
+
+  static Future<void> _release(cam.CameraController controller) async {
     try {
       if (controller.value.isStreamingImages) {
         await controller.stopImageStream();
@@ -155,7 +216,25 @@ final class FcPluginLiveCamera implements FcLiveCamera {
     } catch (_) {
       // Disposing below releases the stream either way.
     }
-    await controller.dispose();
+    try {
+      await controller.dispose();
+    } catch (_) {
+      // Already released by the platform; nothing left to free.
+    }
+  }
+
+  /// A lens that can't report its range simply doesn't zoom.
+  static Future<(double, double)> _zoomRange(
+    cam.CameraController controller,
+  ) async {
+    try {
+      return await (
+        controller.getMinZoomLevel(),
+        controller.getMaxZoomLevel(),
+      ).wait;
+    } catch (_) {
+      return (1.0, 1.0);
+    }
   }
 
   FcCameraFrame? _toFrame(

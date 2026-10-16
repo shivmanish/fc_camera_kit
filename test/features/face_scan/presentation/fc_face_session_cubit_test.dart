@@ -29,6 +29,8 @@ void main() {
     wasCompressed: true,
     quality: 85,
     stamped: false,
+    // The pipeline hands back the metadata it embedded.
+    metadata: metadata,
   );
   const stamp = FcStampSpec(
     placement: StampPlacement.overlay,
@@ -111,7 +113,7 @@ void main() {
   );
 
   blocTest<FcFaceSessionCubit, FcFaceSessionState>(
-    'lists the stamp step first when stamping',
+    'lists the stamp step first and starts on it while gathering stamp data',
     setUp: () => processReturns(() async => fcSuccess(image)),
     build: build,
     act: (cubit) => process(cubit, stamp: stamp),
@@ -135,6 +137,7 @@ void main() {
           FcImageStage.compressing,
           FcImageStage.writingMetadata,
         ],
+        stage: FcImageStage.stamping,
       ),
     ),
   );

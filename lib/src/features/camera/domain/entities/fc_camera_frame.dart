@@ -6,6 +6,19 @@ enum FcFrameFormat { nv21, bgra8888 }
 /// Which camera on the device.
 enum FcCameraLens { front, back }
 
+/// How much detail the live camera captures.
+enum FcCameraResolution {
+  /// 720p: light enough to analyse every frame.
+  analysis,
+
+  /// 1080p: sharp enough for a field photo, yet cheap to stamp and compress
+  /// on the low-memory phones the in-app camera exists for.
+  photo,
+}
+
+/// The flash for the next photo, as the system camera app offers it.
+enum FcFlashMode { auto, on, off }
+
 /// One analysis frame from the live camera, free of any plugin type.
 ///
 /// Not Equatable on purpose: it carries a megabyte of pixels and is never

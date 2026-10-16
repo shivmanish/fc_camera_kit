@@ -8,8 +8,20 @@ Future<void> main() async {
 
   // Once, before runApp. Reading any setting before this throws.
   await FcCameraKit.instance.init(
-    user: (id: 'EMP-2291', name: 'Asha Verma'),
-    maxBytes: 5 * 1024 * 1024,
+    // EXIF Software and a stamp line. A real app reads the version with
+    // package_info_plus and the environment from its build flavour.
+    app: const FcApp(
+      name: 'FC Camera Kit Example',
+      version: '1.0.0',
+      environment: FcEnvironment.development,
+    ),
+    user: const FcUser(
+      id: 'EMP-2291',
+      name: 'Asha Verma',
+      role: 'Field Officer',
+      branch: 'Baramati',
+    ),
+    maxMb: 5,
     placement: StampPlacement.extend,
     dateFormat: 'dd MMM yyyy, hh:mm a',
     requireLocation: true,

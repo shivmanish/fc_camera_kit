@@ -5,6 +5,7 @@ import '../../core/config/fc_scan_options.dart';
 import '../../core/image/stamp/fc_stamp_style.dart';
 import '../../core/navigation/fc_flow.dart';
 import '../../core/utils/fc_result.dart';
+import '../../core/utils/fc_size.dart';
 import 'domain/entities/fc_scan_result.dart';
 import 'domain/repositories/fc_scan_repository.dart';
 import 'presentation/pages/fc_scanner_page.dart';
@@ -25,7 +26,7 @@ extension FcCameraKitScan on FcCameraKit {
     FcScanSource? source,
     FcScanEnhancement? enhancement,
     bool? embedMetadata,
-    int? maxBytes,
+    double? maxMb,
     bool? stamp,
     StampPlacement? placement,
     String? dateFormat,
@@ -38,7 +39,7 @@ extension FcCameraKitScan on FcCameraKit {
       source: source,
       enhancement: enhancement,
       embedMetadata: embedMetadata,
-      maxBytes: maxBytes,
+      maxBytes: maxMb == null ? null : fcBytesFromMb(maxMb),
       stamp: stamp,
       placement: placement,
       dateFormat: dateFormat,

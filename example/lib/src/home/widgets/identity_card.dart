@@ -46,7 +46,11 @@ class IdentityCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        user?.id ?? 'The stamp will omit who took the photo',
+                        user == null
+                            ? 'The stamp will omit who took the photo'
+                            : [user.id, user.role, user.branch].nonNulls
+                                  .where((part) => part.isNotEmpty)
+                                  .join(' · '),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),

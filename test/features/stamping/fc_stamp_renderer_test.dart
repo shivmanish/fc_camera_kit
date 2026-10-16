@@ -87,6 +87,38 @@ void main() {
       expect(lines.first, 'Asha Verma  ·  EMP-2291');
     });
 
+    test('adds the role to the identity line when set', () {
+      final lines = FcStampRenderer.buildLines(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userName: 'Asha Verma',
+          userId: 'EMP-2291',
+          userRole: 'Field Officer',
+        ),
+        dateFormat,
+      );
+
+      expect(lines.first, 'Asha Verma  ·  EMP-2291  ·  Field Officer');
+    });
+
+    test('adds the branch to the identity line after the role', () {
+      final lines = FcStampRenderer.buildLines(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userName: 'Asha Verma',
+          userId: 'EMP-2291',
+          userRole: 'Field Officer',
+          userBranch: 'Baramati',
+        ),
+        dateFormat,
+      );
+
+      expect(
+        lines.first,
+        'Asha Verma  ·  EMP-2291  ·  Field Officer  ·  Baramati',
+      );
+    });
+
     test('omits the device unless the config asks for it', () {
       final meta = FcPhotoMetadata(
         capturedAt: capturedAt,
@@ -111,6 +143,67 @@ void main() {
 
       expect(lines, hasLength(1));
       expect(lines.single, '17 Sep 2026, 02:05 PM');
+    });
+
+    test('marks a mocked fix on the location line', () {
+      final lines = FcStampRenderer.buildLines(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          location: pune.copyWith(isMocked: true),
+        ),
+        dateFormat,
+      );
+
+      expect(
+        lines.last,
+        'Shivajinagar, Pune  ·  (18.520430, 73.856743) (MOCKED)',
+      );
+    });
+
+    test('names the app alone in production', () {
+      final lines = FcStampRenderer.buildLines(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          app: const FcApp(
+            name: 'SarvaSarathi COS',
+            version: '2.17.6',
+            environment: FcEnvironment.production,
+          ),
+        ),
+        dateFormat,
+      );
+
+      expect(lines.last, 'SarvaSarathi COS');
+    });
+
+    test('calls out the build outside production', () {
+      final lines = FcStampRenderer.buildLines(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          app: const FcApp(
+            name: 'SarvaSarathi COS',
+            version: '2.17.6',
+            environment: FcEnvironment.uat,
+          ),
+        ),
+        dateFormat,
+      );
+
+      expect(lines.last, 'SarvaSarathi COS 2.17.6 (UAT)');
+    });
+
+    test('joins maker and model on the device line', () {
+      final lines = FcStampRenderer.buildLines(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          deviceMake: 'LENOVO',
+          deviceModel: 'TB305XU',
+        ),
+        dateFormat,
+        includeDevice: true,
+      );
+
+      expect(lines.last, 'LENOVO | TB305XU');
     });
   });
 

@@ -40,22 +40,35 @@ class _UserFormState extends State<_UserForm> {
   late final TextEditingController _id = TextEditingController(
     text: widget.current?.id,
   );
+  late final TextEditingController _role = TextEditingController(
+    text: widget.current?.role,
+  );
+  late final TextEditingController _branch = TextEditingController(
+    text: widget.current?.branch,
+  );
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
     _name.dispose();
     _id.dispose();
+    _role.dispose();
+    _branch.dispose();
     super.dispose();
   }
 
   void _save() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    context.read<HomeCubit>().setUser((
-      id: _id.text.trim(),
-      name: _name.text.trim(),
-    ));
+    final role = _role.text.trim();
+    context.read<HomeCubit>().setUser(
+      FcUser(
+        id: _id.text.trim(),
+        name: _name.text.trim(),
+        role: role.isEmpty ? null : role,
+        branch: _branch.text.trim(),
+      ),
+    );
     Navigator.of(context).pop();
   }
 
@@ -116,8 +129,7 @@ class _UserFormState extends State<_UserForm> {
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _id,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _save(),
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Employee ID',
                       hintText: 'EMP-2291',
@@ -126,6 +138,31 @@ class _UserFormState extends State<_UserForm> {
                     ),
                     validator: (value) =>
                         (value ?? '').trim().isEmpty ? 'ID is required' : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _role,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Role (optional)',
+                      hintText: 'Field Officer',
+                      prefixIcon: Icon(Icons.work_outline_rounded),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _branch,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _save(),
+                    decoration: const InputDecoration(
+                      labelText: 'Branch (optional)',
+                      hintText: 'Baramati',
+                      prefixIcon: Icon(Icons.apartment_outlined),
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(

@@ -62,6 +62,7 @@ final class FcProcessedImage extends Equatable {
     required this.wasCompressed,
     required this.quality,
     required this.stamped,
+    this.metadata,
   });
 
   final XFile file;
@@ -72,6 +73,10 @@ final class FcProcessedImage extends Equatable {
   final int quality;
   final bool stamped;
 
+  /// The metadata as embedded: with this file's own `imageId` when EXIF was
+  /// written.
+  final FcPhotoMetadata? metadata;
+
   @override
   List<Object?> get props => [
     file.path,
@@ -81,6 +86,7 @@ final class FcProcessedImage extends Equatable {
     wasCompressed,
     quality,
     stamped,
+    metadata,
   ];
 }
 
@@ -120,17 +126,21 @@ abstract final class FcImagePipeline {
     onStage?.call(FcImageStage.compressing);
     final outcome = await FcImageCompressor.toBudget(
       bytes: bytes,
-      maxBytes: maxBytes,
+      // Room for the EXIF block, so the finished file stays under the limit.
+      maxBytes: writeMetadata && metadata != null
+          ? maxBytes - FcExifWriter.reservedBytes
+          : maxBytes,
       width: width,
       height: height,
     );
 
     final file = await FcImageStore.save(outcome.data);
+    var embedded = metadata;
     try {
       if (writeMetadata && metadata != null) {
         onStage?.call(FcImageStage.writingMetadata);
         // After compression: a JPEG re-encode drops EXIF.
-        await FcExifWriter.write(file.path, metadata);
+        embedded = await FcExifWriter.write(file.path, metadata);
       }
     } catch (_) {
       await FcImageStore.deleteQuietly(file.path);
@@ -139,12 +149,14 @@ abstract final class FcImagePipeline {
 
     return FcProcessedImage(
       file: XFile(file.path),
-      sizeBytes: outcome.sizeBytes,
+      // The file as returned, EXIF included.
+      sizeBytes: await file.length(),
       width: outcome.width,
       height: outcome.height,
       wasCompressed: outcome.wasCompressed,
       quality: outcome.quality,
       stamped: stamping,
+      metadata: embedded,
     );
   }
 

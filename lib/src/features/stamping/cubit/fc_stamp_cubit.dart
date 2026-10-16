@@ -6,6 +6,7 @@ import '../../../core/error/fc_camera_exception.dart';
 import '../../../core/error/fc_camera_failure.dart';
 import '../../../core/image/compressor/fc_compression_policy.dart';
 import '../../../core/image/compressor/fc_image_compressor.dart';
+import '../../../core/image/edit/fc_photo_edit.dart';
 import '../../../core/image/fc_image_store.dart';
 import '../../../core/image/metadata/fc_exif_writer.dart';
 import '../../../core/image/metadata/fc_photo_metadata.dart';
@@ -31,6 +32,7 @@ class FcStampCubit extends FcCubit<FcStampState, FcCaptureResult, XFile> {
     int? maxBytes,
     FcStampStyle style = const FcStampStyle(),
     FcCompressionPolicy policy = const FcCompressionPolicy(),
+    FcPhotoEdit edit = FcPhotoEdit.none,
   }) async {
     final kit = FcCameraKit.instance;
 
@@ -45,13 +47,15 @@ class FcStampCubit extends FcCubit<FcStampState, FcCaptureResult, XFile> {
         dateFormat: dateFormat ?? kit.dateFormat,
         includeDevice: kit.includeDeviceInStamp,
         style: style,
+        edit: edit,
       );
 
       safeEmit(const FcStampProcessing(FcStampStage.compressing));
 
       final outcome = await FcImageCompressor.toBudget(
         bytes: stamped.bytes,
-        maxBytes: maxBytes ?? kit.maxBytes,
+        // Room for the EXIF block, so the finished file stays under the limit.
+        maxBytes: (maxBytes ?? kit.maxBytes) - FcExifWriter.reservedBytes,
         width: stamped.width,
         height: stamped.height,
         policy: policy,
@@ -60,14 +64,15 @@ class FcStampCubit extends FcCubit<FcStampState, FcCaptureResult, XFile> {
       final file = await FcImageStore.save(outcome.data);
 
       safeEmit(const FcStampProcessing(FcStampStage.writingMetadata));
-      await FcExifWriter.write(file.path, metadata);
+      final embedded = await FcExifWriter.write(file.path, metadata);
 
       safeEmit(
         FcStampSuccess(
           FcCaptureResult(
             file: XFile(file.path),
-            metadata: metadata,
-            sizeBytes: outcome.sizeBytes,
+            metadata: embedded,
+            // The file as returned, EXIF included.
+            sizeBytes: await file.length(),
             width: outcome.width,
             height: outcome.height,
             wasCompressed: outcome.wasCompressed,

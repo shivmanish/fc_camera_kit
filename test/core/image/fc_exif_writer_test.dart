@@ -3,16 +3,33 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final capturedAt = DateTime(2026, 9, 17, 14, 5, 9);
+  const app = FcApp(
+    name: 'SarvaSarathi COS',
+    version: '2.17.6',
+    environment: FcEnvironment.production,
+  );
 
   group('attributesFor', () {
-    test('every value is a type both platforms accept', () {
+    const location = FcGeoLocation(latitude: 18.52, longitude: 73.85);
+
+    test('on Android every value is a String, GPS lat/long a double', () {
       final attributes = FcExifWriter.attributesFor(
         FcPhotoMetadata(
           capturedAt: capturedAt,
           userName: 'Asha',
           userId: 'EMP-1',
+          deviceMake: 'Google',
           deviceModel: 'Pixel 8',
-          location: const FcGeoLocation(latitude: 18.52, longitude: 73.85),
+          app: app,
+          imageId: FcExifWriter.newImageId(),
+          location: FcGeoLocation(
+            latitude: 18.52,
+            longitude: 73.85,
+            accuracyMeters: 12.5,
+            address: 'Shivajinagar, Pune',
+            fixedAt: DateTime.utc(2026, 9, 17, 8, 35, 1),
+            isMocked: true,
+          ),
         ),
       );
 
@@ -29,35 +46,124 @@ void main() {
       }
     });
 
-    test('writes the host app id to UserComment as "used by"', () {
+    test('on iOS numeric tags are numbers, as ImageIO wants', () {
       final attributes = FcExifWriter.attributesFor(
         FcPhotoMetadata(
           capturedAt: capturedAt,
-          appId: 'co.sarvagram.fc_camera_kit.fc_camera_kit_example',
+          location: const FcGeoLocation(
+            latitude: 18.52,
+            longitude: 73.85,
+            accuracyMeters: 12.5,
+          ),
+        ),
+        android: false,
+      );
+
+      expect(attributes['Orientation'], 1);
+      expect(attributes['GPSHPositioningError'], 12.5);
+      // Only Android's string-to-bytes path can express the version bytes.
+      expect(attributes.containsKey('GPSVersionID'), isFalse);
+    });
+
+    test('names the app and its version in Software', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(capturedAt: capturedAt, app: app),
+      );
+
+      expect(attributes['Software'], 'SarvaSarathi COS 2.17.6');
+    });
+
+    test('calls out a build outside production in Software', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          app: const FcApp(
+            name: 'SarvaSarathi COS',
+            version: '2.17.6',
+            environment: FcEnvironment.uat,
+          ),
         ),
       );
 
+      expect(attributes['Software'], 'SarvaSarathi COS 2.17.6 (UAT)');
+    });
+
+    test('writes the photo id to ImageUniqueID', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          imageId: '3f9c2a7e5b1d4e8fa0c64b2d9e7f1a35',
+        ),
+      );
+
+      expect(attributes['ImageUniqueID'], '3f9c2a7e5b1d4e8fa0c64b2d9e7f1a35');
+    });
+
+    test('leaves ImageUniqueID out until the id is assigned', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(capturedAt: capturedAt),
+      );
+
+      expect(attributes.containsKey('ImageUniqueID'), isFalse);
+    });
+
+    test('marks a mocked fix, in the method and beside the place', () {
+      final meta = FcPhotoMetadata(
+        capturedAt: capturedAt,
+        location: const FcGeoLocation(
+          latitude: 18.52,
+          longitude: 73.85,
+          address: 'Baner, Pune',
+          isMocked: true,
+        ),
+      );
+      final android = FcExifWriter.attributesFor(meta);
+
+      expect(android['GPSProcessingMethod'], 'ASCII\x00\x00\x00MOCKED');
+      expect(android['ImageDescription'], 'Baner, Pune (MOCKED)');
       expect(
-        attributes['UserComment'],
-        'co.sarvagram.fc_camera_kit.fc_camera_kit_example',
+        FcExifWriter.attributesFor(meta, android: false)['GPSProcessingMethod'],
+        'MOCKED',
       );
-      expect(attributes['Software'], 'fc_camera_kit');
     });
 
-    test('leaves UserComment out when the app id is unknown', () {
+    test('says nothing about the method for a real fix', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(capturedAt: capturedAt, location: location),
+      );
+
+      expect(attributes.containsKey('GPSProcessingMethod'), isFalse);
+    });
+
+    test('leaves Software out when the app is unknown', () {
       final attributes = FcExifWriter.attributesFor(
         FcPhotoMetadata(capturedAt: capturedAt),
       );
 
-      expect(attributes.containsKey('UserComment'), isFalse);
+      expect(attributes.containsKey('Software'), isFalse);
     });
 
-    test('omits Orientation — the platforms disagree on its type', () {
+    test('names the kit in UserComment, behind the charset header', () {
+      final meta = FcPhotoMetadata(capturedAt: capturedAt);
+
+      // Android's ExifInterface writes no header of its own; iOS does.
+      expect(
+        FcExifWriter.attributesFor(meta)['UserComment'],
+        'ASCII\x00\x00\x00fc_camera_kit',
+      );
+      expect(
+        FcExifWriter.attributesFor(meta, android: false)['UserComment'],
+        'fc_camera_kit',
+      );
+    });
+
+    test('marks the pixels upright, as Orientation 1', () {
       final attributes = FcExifWriter.attributesFor(
         FcPhotoMetadata(capturedAt: capturedAt),
       );
 
-      expect(attributes.containsKey('Orientation'), isFalse);
+      // Left out, ExifInterface writes 0, which is not a valid orientation.
+      expect(attributes['Orientation'], '1');
     });
 
     test('writes coordinates as decimal degrees, not a DMS string', () {
@@ -72,14 +178,36 @@ void main() {
       expect(attributes['GPSLongitude'], 73.8567);
     });
 
-    test('writes EXIF date format, not the display format', () {
+    test('writes the capture time as all three EXIF dates', () {
       final attributes = FcExifWriter.attributesFor(
-        FcPhotoMetadata(capturedAt: capturedAt),
+        FcPhotoMetadata(capturedAt: DateTime(2026, 9, 17, 14, 5, 9, 42)),
       );
 
       expect(attributes['DateTime'], '2026:09:17 14:05:09');
-      expect(attributes.containsKey('DateTimeOriginal'), isFalse);
-      expect(attributes.containsKey('DateTimeDigitized'), isFalse);
+      expect(attributes['DateTimeOriginal'], '2026:09:17 14:05:09');
+      expect(attributes['DateTimeDigitized'], '2026:09:17 14:05:09');
+      expect(attributes['SubSecTimeOriginal'], '042');
+      expect(attributes['SubSecTime'], '042');
+      expect(attributes['SubSecTimeDigitized'], '042');
+    });
+
+    test('writes the UTC offset beside the local time', () {
+      final utc = FcExifWriter.attributesFor(
+        FcPhotoMetadata(capturedAt: DateTime.utc(2026, 9, 17, 8, 35, 9)),
+      );
+      final local = FcExifWriter.attributesFor(
+        FcPhotoMetadata(capturedAt: capturedAt),
+      );
+
+      expect(utc['DateTimeOriginal'], '2026:09:17 08:35:09');
+      expect(utc['OffsetTimeOriginal'], '+00:00');
+      for (final tag in [
+        'OffsetTime',
+        'OffsetTimeOriginal',
+        'OffsetTimeDigitized',
+      ]) {
+        expect(local[tag], matches(RegExp(r'^[+-]\d{2}:\d{2}$')), reason: tag);
+      }
     });
 
     test('omits GPS tags entirely when there is no fix', () {
@@ -98,12 +226,55 @@ void main() {
         ),
       );
 
-      // The sign carries the hemisphere; Android's setLatLong writes the ref
-      // tags from it, so duplicating them here was redundant.
+      // The sign carries the hemisphere; both platforms write the ref tags
+      // from it, so duplicating them here was redundant.
       expect(south['GPSLatitude'], -33.86);
       expect(south['GPSLongitude'], -70.66);
       expect(south.containsKey('GPSLatitudeRef'), isFalse);
       expect(south.containsKey('GPSLongitudeRef'), isFalse);
+    });
+
+    test('writes the GPS version, datum and accuracy', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          location: const FcGeoLocation(
+            latitude: 18.52,
+            longitude: 73.85,
+            accuracyMeters: 12.34,
+          ),
+        ),
+      );
+
+      expect(attributes['GPSVersionID'], '\x02\x03\x00\x00');
+      expect(attributes['GPSMapDatum'], 'WGS-84');
+      expect(attributes['GPSHPositioningError'], '1234/100');
+    });
+
+    test('writes when the fix was taken, in UTC', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          location: FcGeoLocation(
+            latitude: 18.52,
+            longitude: 73.85,
+            fixedAt: DateTime.utc(2026, 9, 17, 23, 59, 58).toLocal(),
+          ),
+        ),
+      );
+
+      expect(attributes['GPSDateStamp'], '2026:09:17');
+      expect(attributes['GPSTimeStamp'], '23:59:58');
+    });
+
+    test('leaves out accuracy and fix time when the platform gave none', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(capturedAt: capturedAt, location: location),
+      );
+
+      expect(attributes.containsKey('GPSHPositioningError'), isFalse);
+      expect(attributes.containsKey('GPSDateStamp'), isFalse);
+      expect(attributes.containsKey('GPSTimeStamp'), isFalse);
     });
 
     test('puts name and id together in Artist', () {
@@ -116,7 +287,49 @@ void main() {
       );
 
       expect(attributes['Artist'], 'Asha Verma | EMP-2291');
-      expect(attributes.containsKey('UserComment'), isFalse);
+    });
+
+    test('appends the role to Artist when set', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userName: 'Asha Verma',
+          userId: 'EMP-2291',
+          userRole: 'Field Officer',
+        ),
+      );
+
+      expect(attributes['Artist'], 'Asha Verma | EMP-2291 | Field Officer');
+    });
+
+    test('appends the branch to Artist after the role', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userName: 'Asha Verma',
+          userId: 'EMP-2291',
+          userRole: 'Field Officer',
+          userBranch: 'Baramati',
+        ),
+      );
+
+      expect(
+        attributes['Artist'],
+        'Asha Verma | EMP-2291 | Field Officer | Baramati',
+      );
+    });
+
+    test('a branch without a role leaves no stray separator', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userName: 'Asha Verma',
+          userId: 'EMP-2291',
+          userBranch: 'Baramati',
+        ),
+      );
+
+      expect(attributes['Artist'], 'Asha Verma | EMP-2291 | Baramati');
     });
 
     test('omits Artist entirely when there is no user', () {
@@ -145,21 +358,63 @@ void main() {
 
     test('omits the place when geocoding gave nothing', () {
       final attributes = FcExifWriter.attributesFor(
-        FcPhotoMetadata(
-          capturedAt: capturedAt,
-          location: const FcGeoLocation(latitude: 1, longitude: 2),
-        ),
+        FcPhotoMetadata(capturedAt: capturedAt, location: location),
       );
 
       expect(attributes.containsKey('ImageDescription'), isFalse);
     });
 
-    test('embeds the device so a photo traces back to a handset', () {
+    test('leaves out text that is not ASCII rather than writing ?', () {
       final attributes = FcExifWriter.attributesFor(
-        FcPhotoMetadata(capturedAt: capturedAt, deviceModel: 'Google Pixel 8'),
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userName: 'आशा',
+          app: const FcApp(
+            name: 'सारथी',
+            version: '1.0.0',
+            environment: FcEnvironment.production,
+          ),
+          location: const FcGeoLocation(
+            latitude: 18.52,
+            longitude: 73.85,
+            address: 'शिवाजीनगर, पुणे',
+          ),
+        ),
       );
 
-      expect(attributes['Model'], 'Google Pixel 8');
+      expect(attributes.containsKey('Artist'), isFalse);
+      expect(attributes.containsKey('ImageDescription'), isFalse);
+      expect(attributes.containsKey('Software'), isFalse);
+    });
+
+    test('embeds the device as Make and Model', () {
+      final attributes = FcExifWriter.attributesFor(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          deviceMake: 'Google',
+          deviceModel: 'Pixel 8',
+        ),
+      );
+
+      expect(attributes['Make'], 'Google');
+      expect(attributes['Model'], 'Pixel 8');
+    });
+  });
+
+  group('newImageId', () {
+    test('is a UUID v4 in the 32 hex digits ImageUniqueID takes', () {
+      final id = FcExifWriter.newImageId();
+
+      expect(
+        id,
+        matches(RegExp(r'^[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$')),
+      );
+    });
+
+    test('is new every time', () {
+      final ids = {for (var i = 0; i < 1000; i++) FcExifWriter.newImageId()};
+
+      expect(ids, hasLength(1000));
     });
   });
 

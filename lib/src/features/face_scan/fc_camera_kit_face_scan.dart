@@ -4,6 +4,7 @@ import '../../core/config/fc_camera_kit.dart';
 import '../../core/image/stamp/fc_stamp_style.dart';
 import '../../core/navigation/fc_flow.dart';
 import '../../core/utils/fc_result.dart';
+import '../../core/utils/fc_size.dart';
 import '../camera/data/datasources/fc_live_camera.dart';
 import 'domain/entities/fc_face_result.dart';
 import 'domain/repositories/fc_face_detector.dart';
@@ -28,7 +29,7 @@ extension FcCameraKitFaceScan on FcCameraKit {
   Future<FcResult<FcFaceResult>> scanFace(
     BuildContext context, {
     int? blinks,
-    int? maxBytes,
+    double? maxMb,
     bool? embedMetadata,
     bool? stamp,
     StampPlacement? placement,
@@ -41,7 +42,7 @@ extension FcCameraKitFaceScan on FcCameraKit {
     key: #fcFaceScan,
     page: (callbacks) => FcFaceScanPage(
       blinks: blinks,
-      maxBytes: maxBytes,
+      maxBytes: maxMb == null ? null : fcBytesFromMb(maxMb),
       embedMetadata: embedMetadata,
       stamp: stamp,
       placement: placement,

@@ -10,9 +10,9 @@ abstract final class FcFaceFrameGeometry {
 
   /// The oval for a screen of [size].
   ///
-  /// Portrait: centred, slightly above middle, sized from the width so a face
-  /// fills it at a normal arm's length, but never taller than 58 % of the
-  /// screen, so the hint and shutter keep their room on short phones and the
+  /// Portrait: centred, sized from the width so a face fills it at a normal
+  /// arm's length, but never taller than 54 % of the screen, so the hint
+  /// above and the shutter below keep their room on short phones and the
   /// oval doesn't balloon on tablets. Landscape: on the left, the controls
   /// beside it on the right.
   static Rect ovalFor(Size size) {
@@ -34,12 +34,12 @@ abstract final class FcFaceFrameGeometry {
 
     var width = size.width * 0.84;
     var height = width * faceAspect;
-    if (height > size.height * 0.58) {
-      height = size.height * 0.58;
+    if (height > size.height * 0.54) {
+      height = size.height * 0.54;
       width = height / faceAspect;
     }
     return Rect.fromCenter(
-      center: Offset(size.width / 2, size.height * 0.4),
+      center: Offset(size.width / 2, size.height / 2),
       width: width,
       height: height,
     );

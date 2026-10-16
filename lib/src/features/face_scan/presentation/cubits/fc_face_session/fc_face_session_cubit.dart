@@ -51,7 +51,8 @@ class FcFaceSessionCubit
         );
 
     final capturedAt = _now();
-    safeEmit(progress());
+    // Gathering the stamp's data (location, address) is part of stamping.
+    safeEmit(progress(stamp != null ? FcImageStage.stamping : null));
     try {
       final metadata = await resolveMetadata();
       final failure = metadata.failureOrNull;
@@ -90,7 +91,7 @@ class FcFaceSessionCubit
             face: face.box,
             pose: face.pose,
             stamped: image.stamped,
-            metadata: writeMetadata || image.stamped ? capture.metadata : null,
+            metadata: writeMetadata || image.stamped ? image.metadata : null,
           ),
         ),
       );

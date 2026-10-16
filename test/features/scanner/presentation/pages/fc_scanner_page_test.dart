@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../helpers/fc_test_app.dart';
+
 class _MockRepository extends Mock implements FcScanRepository {}
 
 void main() {
@@ -29,7 +31,7 @@ void main() {
 
   setUp(() async {
     FcCameraKit.reset();
-    await FcCameraKit.instance.init();
+    await FcCameraKit.instance.init(app: fcTestApp);
     navigatorKey = GlobalKey<NavigatorState>();
     repository = _MockRepository();
     when(() => repository.clearCache()).thenAnswer((_) async {});
@@ -219,7 +221,10 @@ void main() {
       tester,
     ) async {
       FcCameraKit.reset();
-      await FcCameraKit.instance.init(placement: StampPlacement.extend);
+      await FcCameraKit.instance.init(
+        app: fcTestApp,
+        placement: StampPlacement.extend,
+      );
       final processing = Completer<FcResult<FcScannedPage>>();
       acquireReturns(() => fcSuccess([raw]));
       when(

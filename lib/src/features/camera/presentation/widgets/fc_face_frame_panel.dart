@@ -3,17 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../../presentation/molecules/fc_step_list.dart';
 import '../../domain/entities/fc_face_frame_status.dart';
 
-/// What sits under the circle: the message, a detail line, the steps of a
-/// running job, and the buttons once a flow has stopped.
-class FcFaceFramePanel extends StatelessWidget {
-  const FcFaceFramePanel({
-    required this.status,
-    required this.onAction,
-    super.key,
-  });
+/// What sits above the circle: the message and a detail line.
+class FcFaceFrameHint extends StatelessWidget {
+  const FcFaceFrameHint({required this.status, super.key});
 
   final FcFaceFrameStatus status;
-  final ValueChanged<FcFaceFrameAction> onAction;
 
   static const _fade = Duration(milliseconds: 220);
 
@@ -21,8 +15,6 @@ class FcFaceFramePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final detail = status.detail;
-    final primary = status.primaryAction;
-    final secondary = status.secondaryAction;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -53,6 +45,31 @@ class FcFaceFramePanel extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// What sits under the circle: the steps of a running job, and the buttons
+/// once a flow has stopped.
+class FcFaceFramePanel extends StatelessWidget {
+  const FcFaceFramePanel({
+    required this.status,
+    required this.onAction,
+    super.key,
+  });
+
+  final FcFaceFrameStatus status;
+  final ValueChanged<FcFaceFrameAction> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = status.primaryAction;
+    final secondary = status.secondaryAction;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         if (status.steps.isNotEmpty) ...[
           const SizedBox(height: 16),
           FcStepList(labels: status.steps, current: status.currentStep),

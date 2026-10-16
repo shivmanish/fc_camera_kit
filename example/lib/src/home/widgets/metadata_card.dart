@@ -33,7 +33,12 @@ class MetadataCard extends StatelessWidget {
                 _Line(
                   icon: Icons.person_outline_rounded,
                   value: meta.hasUser
-                      ? '${meta.userName} · ${meta.userId}'
+                      ? [
+                          meta.userName,
+                          meta.userId,
+                          meta.userRole,
+                          meta.userBranch,
+                        ].nonNulls.join(' · ')
                       : null,
                   missing: 'No user set',
                 ),

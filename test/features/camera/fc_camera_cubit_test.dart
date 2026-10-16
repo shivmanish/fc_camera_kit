@@ -155,6 +155,260 @@ void main() {
     expect(camera.calls.where((c) => c == 'open'), hasLength(1));
   });
 
+  group('as a photo camera', () {
+    FcCameraCubit photo({bool useAnyLens = true}) => FcCameraCubit(
+      camera: camera,
+      lens: FcCameraLens.back,
+      resolution: FcCameraResolution.photo,
+      useAnyLens: useAnyLens,
+      watchLifecycle: false,
+    );
+
+    FcCameraReady ready(FcCameraCubit cubit) => cubit.state as FcCameraReady;
+
+    setUp(() => camera.lenses = {FcCameraLens.back});
+
+    test('opens at photo resolution and never streams frames', () async {
+      final cubit = photo();
+      await cubit.start();
+
+      expect(camera.resolution, FcCameraResolution.photo);
+      expect(cubit.state, isA<FcCameraReady>());
+
+      await cubit.capture();
+      await cubit.resumeFrames();
+      expect(camera.calls, isNot(contains('startFrames')));
+      await cubit.close();
+    });
+
+    group('flash', () {
+      test('starts on auto, as the system camera does', () async {
+        final cubit = photo();
+        await cubit.start();
+
+        expect(camera.flash, FcFlashMode.auto);
+        expect(
+          cubit.state,
+          const FcCameraReady(
+            sensorAspect: 4 / 3,
+            lens: FcCameraLens.back,
+            flash: FcFlashMode.auto,
+          ),
+        );
+        await cubit.close();
+      });
+
+      test('cycles auto, on, off and back to auto', () async {
+        final cubit = photo();
+        await cubit.start();
+
+        final seen = <FcFlashMode?>[];
+        for (var i = 0; i < 3; i++) {
+          await cubit.cycleFlash();
+          seen.add(ready(cubit).flash);
+        }
+
+        expect(seen, [FcFlashMode.on, FcFlashMode.off, FcFlashMode.auto]);
+        expect(camera.flash, FcFlashMode.auto);
+        await cubit.close();
+      });
+
+      test('is kept across a reopen', () async {
+        final cubit = photo();
+        await cubit.start();
+        await cubit.cycleFlash();
+
+        await cubit.start();
+
+        expect(camera.flash, FcFlashMode.on);
+        expect(ready(cubit).flash, FcFlashMode.on);
+        await cubit.close();
+      });
+
+      test('a camera that refuses it never offers one', () async {
+        camera.flashError = const CameraException('no flash unit');
+        final cubit = photo();
+        await cubit.start();
+
+        expect(ready(cubit).flash, isNull);
+        camera.calls.clear();
+        await cubit.cycleFlash();
+        expect(camera.calls, isEmpty);
+        await cubit.close();
+      });
+
+      test('a refused mode is skipped, not fatal', () async {
+        final cubit = photo();
+        await cubit.start();
+
+        camera.flashError = const CameraException('not this mode');
+        await cubit.cycleFlash();
+
+        expect(ready(cubit).flash, FcFlashMode.auto);
+        await cubit.close();
+      });
+
+      test('the front camera has none, and the choice survives it', () async {
+        camera.lenses = {FcCameraLens.front, FcCameraLens.back};
+        final cubit = photo();
+        await cubit.start();
+        await cubit.cycleFlash();
+
+        await cubit.switchLens();
+        expect(ready(cubit).flash, isNull);
+
+        await cubit.switchLens();
+        expect(ready(cubit).flash, FcFlashMode.on);
+        await cubit.close();
+      });
+    });
+
+    group('zoom', () {
+      setUp(() {
+        camera
+          ..minZoom = 1
+          ..maxZoom = 8;
+      });
+
+      test('follows a pinch from where it began', () async {
+        final cubit = photo();
+        await cubit.start();
+
+        cubit.beginZoom();
+        await cubit.zoomBy(2);
+        expect(camera.zoom, 2);
+
+        // A second pinch carries on from 2×.
+        cubit.beginZoom();
+        await cubit.zoomBy(1.5);
+        expect(camera.zoom, 3);
+        await cubit.close();
+      });
+
+      test('stays inside the lens range', () async {
+        final cubit = photo();
+        await cubit.start();
+
+        cubit.beginZoom();
+        await cubit.zoomBy(20);
+        expect(camera.zoom, 8);
+
+        await cubit.zoomBy(0.01);
+        expect(camera.zoom, 1);
+        await cubit.close();
+      });
+
+      test('a lens without zoom ignores pinches', () async {
+        camera.maxZoom = 1;
+        final cubit = photo();
+        await cubit.start();
+
+        cubit.beginZoom();
+        await cubit.zoomBy(3);
+        expect(camera.zoom, isNull);
+        await cubit.close();
+      });
+
+      test('is restored after a reopen, untouched until then', () async {
+        final cubit = photo();
+        await cubit.start();
+        expect(camera.zoom, isNull);
+
+        cubit.beginZoom();
+        await cubit.zoomBy(4);
+        camera.zoom = null;
+
+        await cubit.start();
+        expect(camera.zoom, 4);
+        await cubit.close();
+      });
+    });
+
+    group('lenses', () {
+      test('switchLens reopens on the other side', () async {
+        camera.lenses = {FcCameraLens.front, FcCameraLens.back};
+        final cubit = photo();
+        await cubit.start();
+        expect(ready(cubit).canSwitchLens, isTrue);
+
+        await cubit.switchLens();
+
+        expect(cubit.lens, FcCameraLens.front);
+        expect(camera.lens, FcCameraLens.front);
+        expect(
+          cubit.state,
+          const FcCameraReady(sensorAspect: 4 / 3, canSwitchLens: true),
+        );
+        await cubit.close();
+      });
+
+      test('switchLens does nothing with one camera', () async {
+        final cubit = photo();
+        await cubit.start();
+        camera.calls.clear();
+
+        await cubit.switchLens();
+
+        expect(camera.calls, isEmpty);
+        expect(cubit.lens, FcCameraLens.back);
+        await cubit.close();
+      });
+
+      test('a missing side falls back to the one the device has', () async {
+        camera.lenses = {FcCameraLens.front};
+        final cubit = photo();
+        await cubit.start();
+
+        expect(cubit.lens, FcCameraLens.front);
+        expect(ready(cubit).lens, FcCameraLens.front);
+        await cubit.close();
+      });
+
+      test('without useAnyLens a missing side is an error', () async {
+        camera.lenses = {FcCameraLens.front};
+        final cubit = photo(useAnyLens: false);
+        await cubit.start();
+
+        expect(cubit.state, isA<FcCameraError>());
+        await cubit.close();
+      });
+    });
+
+    test('capture marks the shutter busy until the photo is back', () async {
+      camera
+        ..lenses = {FcCameraLens.front, FcCameraLens.back}
+        ..taking = Completer<void>();
+      final cubit = photo();
+      await cubit.start();
+
+      final shot = cubit.capture();
+      expect(ready(cubit).capturing, isTrue);
+
+      // Neither the lens nor the flash may change under a photo.
+      await cubit.switchLens();
+      await cubit.cycleFlash();
+      expect(camera.calls.where((c) => c == 'open'), hasLength(1));
+      expect(camera.flash, FcFlashMode.auto);
+
+      camera.taking!.complete();
+      expect((await shot).isSuccess, isTrue);
+      expect(ready(cubit).capturing, isFalse);
+      await cubit.close();
+    });
+
+    test('a failed capture keeps the camera live', () async {
+      camera.takeError = const CameraException('busy');
+      final cubit = photo();
+      await cubit.start();
+
+      final shot = await cubit.capture();
+
+      expect(shot.failureOrNull, isA<CameraFailure>());
+      expect(ready(cubit).capturing, isFalse);
+      await cubit.close();
+    });
+  });
+
   group('fcFrameRotation', () {
     test('iOS follows the sensor', () {
       expect(
