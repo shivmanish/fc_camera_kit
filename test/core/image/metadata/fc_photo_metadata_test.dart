@@ -44,13 +44,24 @@ void main() {
       expect(meta.hasUser, isFalse);
     });
 
-    test('hasUser is true when either name or id is set', () {
+    test('hasUser is true when any of name, id, role or branch is set', () {
       expect(
         FcPhotoMetadata(capturedAt: capturedAt, userId: 'EMP-2291').hasUser,
         isTrue,
       );
       expect(
         FcPhotoMetadata(capturedAt: capturedAt, userName: 'Asha').hasUser,
+        isTrue,
+      );
+      expect(
+        FcPhotoMetadata(
+          capturedAt: capturedAt,
+          userRole: 'Field Officer',
+        ).hasUser,
+        isTrue,
+      );
+      expect(
+        FcPhotoMetadata(capturedAt: capturedAt, userBranch: 'Baramati').hasUser,
         isTrue,
       );
     });

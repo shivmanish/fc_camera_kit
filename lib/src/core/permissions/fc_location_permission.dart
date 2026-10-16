@@ -228,6 +228,8 @@ final class FcLocationPermission {
     longitude: position.longitude,
     accuracyMeters: position.accuracy,
     altitudeMeters: position.altitude,
+    fixedAt: position.timestamp,
+    isMocked: position.isMocked,
     address: resolveAddress
         ? await _reverseGeocode(position.latitude, position.longitude)
         : null,
@@ -236,10 +238,7 @@ final class FcLocationPermission {
   /// Best-effort. Geocoding needs a network round trip and is allowed to fail.
   Future<String?> _reverseGeocode(double latitude, double longitude) async {
     try {
-      final places = await Geocoding().placemarkFromCoordinates(
-        latitude,
-        longitude,
-      );
+      final places = await placemarkFromCoordinates(latitude, longitude);
       return places.isEmpty ? null : formatAddress(places.first);
     } catch (_) {
       return null;

@@ -58,7 +58,7 @@
 	     match the purposeKey passed in Dart. -->
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
-		<key>SgCameraKitPreciseLocation</key>
+		<key>FcCameraKitPreciseLocation</key>
 		<string>Precise location is stamped onto the photo as proof of where it was taken.</string>
 	</dict>
 	<key>NSMicrophoneUsageDescription</key>

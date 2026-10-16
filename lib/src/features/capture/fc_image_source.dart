@@ -1,11 +1,13 @@
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/error/fc_camera_exception.dart';
-import 'fc_capture_source.dart';
 
-/// Thin wrapper over `image_picker`.
+/// The system photo picker, behind a thin wrapper over `image_picker`.
 ///
-/// Injectable so the capture cubit is testable without a platform channel.
+/// Gallery only: new photos always come from the kit's in-app camera, never
+/// the system camera app, which sends the host to the background where
+/// Android can kill it. Injectable so capture is testable without a platform
+/// channel.
 class FcImageSource {
   FcImageSource({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
 
@@ -16,17 +18,12 @@ class FcImageSource {
   /// No `maxWidth`/`imageQuality` here on purpose: `image_picker` would
   /// re-encode before we ever see the pixels, so the stamp would be drawn onto
   /// an already-degraded image and compressed a second time afterwards.
-  Future<XFile?> pick(FcCaptureSource source) async {
+  Future<XFile?> pick() async {
     try {
-      return await _picker.pickImage(
-        source: switch (source) {
-          FcCaptureSource.camera => ImageSource.camera,
-          FcCaptureSource.gallery => ImageSource.gallery,
-        },
-      );
+      return await _picker.pickImage(source: ImageSource.gallery);
     } catch (error, stackTrace) {
       throw CameraException(
-        'Could not read an image from ${source.name}.',
+        'Could not read an image from the gallery.',
         cause: error,
         stackTrace: stackTrace,
       );

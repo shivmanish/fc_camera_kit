@@ -1,16 +1,18 @@
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../error/fc_camera_exception.dart';
 import '../image/metadata/fc_geo_location.dart';
 import '../image/metadata/fc_photo_metadata.dart';
+import '../utils/fc_size.dart';
+import 'fc_app.dart';
+import 'fc_face_scan_options.dart';
 import 'fc_scan_options.dart';
 
-/// Who is taking the photo. A record, so value equality comes for free.
-typedef FcUser = ({String id, String name});
+part 'fc_user.dart';
 
 /// Where the who/when/where stamp is drawn.
 enum StampPlacement {
@@ -38,8 +40,9 @@ final class FcCameraKit {
   }
 
   FcUser? _user;
+  String? _deviceMake;
   String? _deviceModel;
-  String? _appName;
+  FcApp? _app;
   bool _includeDeviceInStamp = false;
   bool _initialized = false;
   int _maxBytes = 5 * 1024 * 1024;
@@ -47,22 +50,24 @@ final class FcCameraKit {
   String _dateFormat = 'dd MMM yyyy, hh:mm a';
   bool _requireLocation = false;
   FcScanOptions _scanOptions = const FcScanOptions();
+  FcFaceScanOptions _faceScanOptions = const FcFaceScanOptions();
 
   bool get isInitialized => _initialized;
 
-  /// Current user, or `null` if none is set.
-  FcUser? get user => _user;
+  /// Who made the device that took the photo, e.g. `Lenovo`.
+  ///
+  /// Detected by the kit, like [deviceModel].
+  String? get deviceMake => _deviceMake;
 
-  /// Which device took the photo, as `name | model`.
+  /// Which device took the photo, e.g. `TB328XU`.
   ///
   /// Detected by the kit — there is no setter, because a caller-supplied value
   /// would defeat the point of identifying the handset. Always written to
   /// EXIF, whether or not the visible stamp shows it.
   String? get deviceModel => _deviceModel;
 
-  /// The host app's package name (Android) or bundle id (iOS), detected at
-  /// [init] and written to EXIF as "used by".
-  String? get appName => _appName;
+  /// The host app given to [init], for EXIF `Software` and the stamp.
+  FcApp? get app => _app;
 
   /// Whether the device also appears in the visible stamp.
   ///
@@ -70,7 +75,7 @@ final class FcCameraKit {
   /// looking at the photo needs to read.
   bool get includeDeviceInStamp => _includeDeviceInStamp;
 
-  /// Hard ceiling for the returned file, in bytes.
+  /// Hard ceiling for the returned file, in bytes (from [init]'s `maxMb`).
   int get maxBytes => _checked(_maxBytes);
 
   StampPlacement get placement => _checked(_placement);
@@ -84,44 +89,64 @@ final class FcCameraKit {
   /// Defaults for `scan()`; per-call arguments override them.
   FcScanOptions get scanOptions => _checked(_scanOptions);
 
+  /// Defaults for `scanFace()`; per-call arguments override them.
+  FcFaceScanOptions get faceScanOptions => _checked(_faceScanOptions);
+
   /// Sets up the kit. Safe to call again to change settings.
   ///
   /// Async so later phases can warm up device info without a breaking change.
+  ///
+  /// [maxMb] is the size ceiling in megabytes; fractions work, e.g. `0.5`.
+  ///
+  /// [app] is the host app, its version and build environment, for EXIF
+  /// `Software` and the stamp; name and version must not be blank.
   Future<void> init({
     FcUser? user,
-    int maxBytes = 5 * 1024 * 1024,
+    double maxMb = 5,
     StampPlacement placement = StampPlacement.overlay,
     String dateFormat = 'dd MMM yyyy, hh:mm a',
     bool requireLocation = false,
     bool includeDeviceInStamp = false,
     FcScanOptions scan = const FcScanOptions(),
+    FcFaceScanOptions faceScan = const FcFaceScanOptions(),
+    required FcApp app,
   }) async {
+    final maxBytes = fcBytesFromMb(maxMb);
     if (maxBytes <= 0) {
-      throw const ConfigurationException('maxBytes must be positive');
+      throw const ConfigurationException('maxMb must be positive');
+    }
+    if (app.name.trim().isEmpty) {
+      throw const ConfigurationException('app.name must not be blank');
+    }
+    if (app.version.trim().isEmpty) {
+      throw const ConfigurationException('app.version must not be blank');
     }
     if (scan.maxPages <= 0) {
       throw const ConfigurationException('scan.maxPages must be positive');
     }
+    if (faceScan.blinks <= 0) {
+      throw const ConfigurationException('faceScan.blinks must be positive');
+    }
     _user = user;
     _includeDeviceInStamp = includeDeviceInStamp;
-    // Detected once here rather than per capture: they are platform calls and
-    // neither the handset nor the app changes mid-session.
-    final (deviceModel, appName) = await (
-      _resolveDeviceModel(),
-      _resolveAppName(),
-    ).wait;
-    _deviceModel = deviceModel;
-    _appName = appName;
+    _app = FcApp(
+      name: app.name.trim(),
+      version: app.version.trim(),
+      environment: app.environment,
+    );
+    // Detected once here rather than per capture: a platform call, and the
+    // handset doesn't change mid-session.
+    final (make, model) = await _resolveDevice();
+    _deviceMake = make;
+    _deviceModel = model;
     _maxBytes = maxBytes;
     _placement = placement;
     _dateFormat = dateFormat;
     _requireLocation = requireLocation;
     _scanOptions = scan;
+    _faceScanOptions = faceScan;
     _initialized = true;
   }
-
-  /// Sets the user stamped onto subsequent captures.
-  void setUser(FcUser user) => _user = user;
 
   /// Shows or hides the device line in the visible stamp. EXIF is unaffected —
   /// the device is always embedded there.
@@ -133,61 +158,54 @@ final class FcCameraKit {
   /// without re-running configuration it has already done.
   void setPlacement(StampPlacement placement) => _placement = placement;
 
-  void clearUser() => _user = null;
-
   /// Snapshots the current user plus the supplied context into the metadata
   /// that gets stamped and written to EXIF.
   FcPhotoMetadata buildMetadata({
     DateTime? capturedAt,
     FcGeoLocation? location,
+    String? deviceMake,
     String? deviceModel,
     String? note,
   }) => FcPhotoMetadata(
     capturedAt: capturedAt ?? DateTime.now(),
-    userId: _user?.id,
-    userName: _user?.name,
+    userId: _nonBlank(_user?.id),
+    userName: _nonBlank(_user?.name),
+    userRole: _nonBlank(_user?.role),
+    userBranch: _nonBlank(_user?.branch),
     location: location,
+    deviceMake: deviceMake ?? _deviceMake,
     deviceModel: deviceModel ?? _deviceModel,
-    appId: _appName,
+    app: _app,
     note: note,
   );
 
-  /// Reads the handset name. Returns `null` rather than throwing — a missing
-  /// device name must never stop a capture, and the plugin is unavailable in
-  /// unit tests.
-  Future<String?> _resolveDeviceModel() async {
+  // A user built one field at a time holds '' placeholders; drop them so EXIF
+  // and the stamp see missing, not empty.
+  static String? _nonBlank(String? value) =>
+      value == null || value.trim().isEmpty ? null : value;
+
+  /// Reads the handset's maker and model. Returns nulls rather than throwing —
+  /// a missing device name must never stop a capture, and the plugin is
+  /// unavailable in unit tests.
+  Future<(String?, String?)> _resolveDevice() async {
     try {
       final info = DeviceInfoPlugin();
 
       if (Platform.isAndroid) {
         final android = await info.androidInfo;
-        return '${android.manufacturer} | ${android.model}';
+        return (android.manufacturer, android.model);
       }
       if (Platform.isIOS) {
         final ios = await info.iosInfo;
-        // machine is the hardware identifier (iPhone15,2); name is what the
-        // device calls itself. Together they pin down a handset.
-        return '${ios.name} | ${ios.utsname.machine}';
+        // machine is the hardware identifier (iPhone15,2), the closest iOS
+        // gets to a model number.
+        return ('Apple', ios.utsname.machine);
       }
     } catch (_) {
       // Unsupported platform or no plugin registered.
     }
 
-    return null;
-  }
-
-  /// `null` rather than throwing, like [_resolveDeviceModel]: a missing app id
-  /// must never stop a capture.
-  Future<String?> _resolveAppName() async {
-    // Mobile only, like the device lookup: elsewhere (including widget tests)
-    // the plugin has no native side and its reply never arrives.
-    if (!Platform.isAndroid && !Platform.isIOS) return null;
-    try {
-      final appName = (await PackageInfo.fromPlatform()).appName;
-      return appName.isEmpty ? null : appName;
-    } catch (_) {
-      return null;
-    }
+    return (null, null);
   }
 
   /// Throws the instance away so the next [instance] read builds a fresh one.

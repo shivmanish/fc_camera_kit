@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -5,10 +6,13 @@ import 'package:flutter/painting.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:meta/meta.dart';
 
-import '../../core/config/fc_camera_kit.dart';
-import '../../core/error/fc_camera_exception.dart';
-import '../../core/image/fc_bmp_encoder.dart';
-import '../../core/image/metadata/fc_photo_metadata.dart';
+import '../../config/fc_camera_kit.dart';
+import '../../error/fc_camera_exception.dart';
+import '../edit/fc_photo_edit.dart';
+import '../edit/fc_photo_editor.dart';
+import '../fc_bmp_encoder.dart';
+import '../metadata/fc_geo_location.dart';
+import '../metadata/fc_photo_metadata.dart';
 import 'fc_stamp_style.dart';
 
 /// Burns the who/when/where lines into the pixels.
@@ -27,8 +31,9 @@ abstract final class FcStampRenderer {
     required String dateFormat,
     bool includeDevice = false,
     FcStampStyle style = const FcStampStyle(),
+    FcPhotoEdit edit = FcPhotoEdit.none,
   }) async {
-    final image = await _decode(source);
+    final image = await _edited(await _decode(source), edit);
 
     try {
       final lines = buildLines(
@@ -172,6 +177,8 @@ abstract final class FcStampRenderer {
         [
           meta.userName,
           meta.userId,
+          meta.userRole,
+          meta.userBranch,
         ].where((part) => part != null && part.isNotEmpty).join('  ·  '),
       );
     }
@@ -181,18 +188,26 @@ abstract final class FcStampRenderer {
     final location = meta.location;
     if (location != null) {
       final address = location.address;
+      // A fix from a mock-location app is kept, but never passes as real.
+      final mocked = location.isMocked ? ' ${FcGeoLocation.mockedMark}' : '';
       lines.add(
         address == null || address.isEmpty
-            ? '(${location.coordinates})'
-            : '$address  ·  (${location.coordinates})',
+            ? '(${location.coordinates})$mocked'
+            : '$address  ·  (${location.coordinates})$mocked',
       );
     }
 
     // Always in EXIF, only here when asked for — it is audit data, not
     // something the person looking at the photo needs to read.
-    if (includeDevice && meta.deviceModel != null) {
-      lines.add(meta.deviceModel!);
-    }
+    final device = [
+      meta.deviceMake,
+      meta.deviceModel,
+    ].whereType<String>().join(' | ');
+    if (includeDevice && device.isNotEmpty) lines.add(device);
+
+    // Which app took it; outside production also its build, so a test photo
+    // can never pass for a real one.
+    if (meta.app case final app?) lines.add(app.stampLine);
 
     if (meta.note != null && meta.note!.isNotEmpty) lines.add(meta.note!);
 
@@ -285,6 +300,17 @@ abstract final class FcStampRenderer {
     return widest;
   }
 
+  /// The user's crop and turn, applied once to the decoded pixels so the
+  /// stamp is drawn on exactly what they kept.
+  static Future<ui.Image> _edited(ui.Image image, FcPhotoEdit edit) async {
+    if (edit.isNone) return image;
+    try {
+      return await FcPhotoEditor.apply(image, edit);
+    } finally {
+      image.dispose();
+    }
+  }
+
   static Future<ui.Image> _decode(Uint8List bytes) async {
     try {
       final codec = await ui.instantiateImageCodec(bytes);
@@ -331,11 +357,12 @@ abstract final class FcStampRenderer {
       throw const ImageProcessingException('Stamped image read back as null.');
     }
 
-    return FcBmpEncoder.encode(
-      data.buffer.asUint8List(),
-      image.width,
-      image.height,
-    );
+    // A per-pixel loop over the whole frame: off the UI isolate so the screen
+    // keeps painting, as FcFrameSnapshot does. Only plain values cross over.
+    final rgba = data.buffer.asUint8List();
+    final width = image.width;
+    final height = image.height;
+    return Isolate.run(() => FcBmpEncoder.encode(rgba, width, height));
   }
 }
 

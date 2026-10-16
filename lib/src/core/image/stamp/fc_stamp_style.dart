@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:equatable/equatable.dart';
 
-import '../../core/config/fc_camera_kit.dart';
+import '../../config/fc_camera_kit.dart';
 
 /// Look of the who/when/where stamp.
 ///

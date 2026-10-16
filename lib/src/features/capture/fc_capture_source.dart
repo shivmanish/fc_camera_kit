@@ -1,6 +1,6 @@
 /// Where a photo comes from.
 enum FcCaptureSource {
-  /// The device's own camera app. OEM autofocus, flash and HDR come for free.
+  /// A new photo from the kit's in-app camera.
   camera,
 
   /// The system photo picker.

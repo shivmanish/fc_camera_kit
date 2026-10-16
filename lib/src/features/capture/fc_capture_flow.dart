@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/config/fc_camera_kit.dart';
 import '../../core/error/fc_camera_failure.dart';
+import '../../core/image/stamp/fc_stamp_style.dart';
 import '../../core/navigation/fc_navigator.dart';
 import '../../core/permissions/fc_permissions.dart';
 import '../../core/utils/fc_result.dart';
+import '../../core/utils/fc_size.dart';
+import '../camera/data/datasources/fc_live_camera.dart';
 import '../permissions/presentation/fc_permission_gate.dart';
-import '../stamping/fc_stamp_style.dart';
 import 'fc_capture_requirements.dart';
 import 'fc_capture_result.dart';
 import 'fc_capture_source.dart';
@@ -19,11 +21,18 @@ import 'widgets/fc_source_sheet.dart';
 /// Declared here rather than on the class itself so `core/` keeps its
 /// dependency direction: features may reach into core, never the reverse.
 extension FcCameraKitCapture on FcCameraKit {
+  /// Replaces the device camera behind the in-app camera, in tests.
+  @visibleForTesting
+  static FcLiveCamera? debugLiveCamera;
+
   /// Chooses a source, clears permissions, captures, stamps, compresses and
   /// embeds metadata — then hands back the finished file.
   ///
   /// Omit [source] to let the kit ask. Every abandon path returns
   /// [CancelledFailure], so a user backing out never looks like a crash.
+  ///
+  /// New photos come from the kit's in-app camera, which keeps the host app
+  /// in the foreground; [imageSource] replaces the gallery picker.
   ///
   /// Per-call arguments override the values given to [FcCameraKit.init].
   Future<FcResult<FcCaptureResult>> capture(
@@ -31,7 +40,7 @@ extension FcCameraKitCapture on FcCameraKit {
     FcCaptureSource? source,
     StampPlacement? placement,
     String? dateFormat,
-    int? maxBytes,
+    double? maxMb,
     FcStampStyle style = const FcStampStyle(),
     bool allowCancel = true,
     FcImageSource? imageSource,
@@ -45,7 +54,7 @@ extension FcCameraKitCapture on FcCameraKit {
         source: source,
         placement: placement,
         dateFormat: dateFormat,
-        maxBytes: maxBytes,
+        maxBytes: maxMb == null ? null : fcBytesFromMb(maxMb),
         style: style,
         allowCancel: allowCancel,
         imageSource: imageSource,
@@ -110,14 +119,15 @@ extension FcCameraKitCapture on FcCameraKit {
 
     if (!context.mounted) return fcFailure(const CancelledFailure());
 
-    // Pushed before the picker opens: this route must already be underneath
-    // when the camera activity closes, or the host app's screen flashes
-    // between the two.
+    // Pushed before the camera opens: this route must already be underneath
+    // when the camera closes, or the host app's screen flashes between the
+    // two.
     final outcome = await FcNavigator.push<Object>(
       context,
       (_) => FcProcessingScreen(
         source: resolved,
         imageSource: imageSource,
+        liveCamera: debugLiveCamera,
         placement: placement,
         dateFormat: dateFormat,
         maxBytes: maxBytes,

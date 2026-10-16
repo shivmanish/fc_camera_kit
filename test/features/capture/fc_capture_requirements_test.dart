@@ -3,6 +3,8 @@ import 'package:fc_camera_kit/fc_camera_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fc_test_app.dart';
+
 void main() {
   group('requirementsFor', () {
     test('gallery without location asks for nothing at all', () {
@@ -61,7 +63,7 @@ void main() {
     testWidgets('a throwing image source returns a failure, never throws', (
       tester,
     ) async {
-      await FcCameraKit.instance.init();
+      await FcCameraKit.instance.init(app: fcTestApp);
       final source = _ThrowingSource();
       late FcResult<FcCaptureResult> result;
 
@@ -91,7 +93,7 @@ void main() {
     });
 
     testWidgets('a cancelled pick returns CancelledFailure', (tester) async {
-      await FcCameraKit.instance.init();
+      await FcCameraKit.instance.init(app: fcTestApp);
       late FcResult<FcCaptureResult> result;
 
       await tester.pumpWidget(
@@ -149,13 +151,13 @@ void main() {
 /// Fails the way a broken platform channel does.
 class _ThrowingSource extends FcImageSource {
   @override
-  Future<XFile?> pick(FcCaptureSource source) async {
-    throw const CameraException('camera unavailable');
+  Future<XFile?> pick() async {
+    throw const CameraException('gallery unavailable');
   }
 }
 
 /// Mimics the user backing out of the picker.
 class _CancellingSource extends FcImageSource {
   @override
-  Future<XFile?> pick(FcCaptureSource source) async => null;
+  Future<XFile?> pick() async => null;
 }

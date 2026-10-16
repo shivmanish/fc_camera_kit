@@ -96,9 +96,9 @@ class StampViewer extends StatelessWidget {
 ///
 /// Its Android implementation reads from a hardcoded allowlist — its own
 /// comment says "we have to list all common tags here. To be extended.." — and
-/// ImageDescription is not on it. The tag *is* written; the bulk read just
-/// cannot see it. Reading it singly goes straight to ExifInterface and works.
-const _readSeparately = ['ImageDescription'];
+/// these are not on it. The tags *are* written; the bulk read just cannot see
+/// them. Reading one singly goes straight to ExifInterface and works.
+const _readSeparately = ['ImageDescription', 'OffsetTimeOriginal'];
 
 /// Reads the tags back off disk, rather than echoing what we meant to write.
 /// Only a read proves the write landed.
@@ -149,14 +149,18 @@ class _MetadataSheet extends StatelessWidget {
   /// by Android's ExifInterface), but nobody should have to know that to read
   /// the sheet.
   static const _written = <String, String>{
-    'DateTime': 'Date & time',
+    'DateTimeOriginal': 'Taken',
+    'OffsetTimeOriginal': 'Time zone',
     'Artist': 'Captured by',
+    'Make': 'Maker',
     'Model': 'Device',
     'ImageDescription': 'Place',
     'GPSLatitude': 'Latitude',
     'GPSLongitude': 'Longitude',
-    'Software': 'Written by',
-    'UserComment': 'Used by',
+    'GPSProcessingMethod': 'Location source',
+    'Software': 'App',
+    'ImageUniqueID': 'Photo ID',
+    'UserComment': 'Written by',
   };
 
   @override

@@ -1,7 +1,7 @@
 import '../../../../../core/config/fc_cubit.dart';
 import '../../../../../core/config/fc_scan_options.dart';
 import '../../../../../core/error/fc_camera_failure.dart';
-import '../../../../../core/image/metadata/fc_photo_metadata.dart';
+import '../../../../../core/image/metadata/fc_metadata_resolver.dart';
 import '../../../../../core/utils/fc_result.dart';
 import '../../../data/repositories/fc_scan_repository_impl.dart';
 import '../../../domain/entities/fc_scan_result.dart';
@@ -10,8 +10,8 @@ import '../../../domain/entities/fc_scan_stamp.dart';
 import '../../../domain/repositories/fc_scan_repository.dart';
 import 'fc_scan_state.dart';
 
-/// Resolves the who / when / where for a scan; `null` means don't embed any.
-typedef FcScanMetadataResolver = Future<FcResult<FcPhotoMetadata?>> Function();
+/// The scanner's name for the shared metadata resolver.
+typedef FcScanMetadataResolver = FcMetadataResolver;
 
 /// Scan → process every page → one result. Always ends in success or error.
 class FcScanCubit extends FcCubit<FcScanState, FcScanResult, FcScanOptions> {
@@ -39,11 +39,10 @@ class FcScanCubit extends FcCubit<FcScanState, FcScanResult, FcScanOptions> {
       if (raws == null) return await _fail(acquired.failureOrNull!);
       if (isClosed) return await _repository.discard();
 
-      final stages = [
-        if (stamp != null) FcScanStage.stamping,
-        FcScanStage.compressing,
-        if (options.embedMetadata) FcScanStage.writingMetadata,
-      ];
+      final stages = FcScanStage.planFor(
+        stamp: stamp != null,
+        writeMetadata: options.embedMetadata,
+      );
       FcScanProcessing progress(int index, [FcScanStage? stage]) =>
           FcScanProcessing(
             page: index + 1,
