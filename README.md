@@ -81,46 +81,100 @@ Two placements, selected by parameter:
 Lines, each dropped when empty:
 
 ```
-Asha Verma  ·  EMP-2291  ·  Field Officer
-14 Oct 2026, 05:10 PM
-Baner, Pune, Maharashtra, 411069, India  ·  (18.561363, 73.785491)
-Samsung | SM-A145                       (only with includeDeviceInStamp)
-SarvaSarathi COS                        (production; UAT: SarvaSarathi COS 2.17.6 (UAT))
+Aman Gupta  ·  222561  ·  BRO  ·  Baramati     (name · id · role · branch)
+16 Oct 2026, 04:12 PM
+Baner, Pune, Maharashtra, 411069, India  ·  (18.561310, 73.785456)
+Lenovo | TB328XU                               (only with includeDeviceInStamp)
+FC Camera Kit Example 1.0.0 (DEV)              (production shows the app name alone)
 ```
 
-A photo from the in-app camera, stamped with `StampPlacement.extend`:
-
-<p align="center">
-  <img src="doc/images/stamp_example.png" alt="Photo with the who / when / where stamp below it" width="320">
-</p>
+| `StampPlacement.overlay` | `StampPlacement.extend` |
+|:---:|:---:|
+| <img src="doc/images/overlay_stamp_example.jpg" alt="Photo with the stamp drawn over its bottom edge" width="280"> | <img src="doc/images/extended_stamp_example.png" alt="Photo with the stamp on a strip below it" width="280"> |
+| Footer over the photo, aspect ratio kept | Strip below the photo, nothing hidden |
 
 A fix from a mock-location app is not refused: the location line ends in
 `(MOCKED)`, and EXIF and `metadata.location.isMocked` say so too.
 
 ### The EXIF
 
-| Tag | Value |
-|---|---|
-| `Artist` | `name \| id \| role \| branch` |
-| `DateTimeOriginal` / `DateTimeDigitized` / `DateTime` | the shutter press |
-| `OffsetTime` / `OffsetTimeOriginal` / `OffsetTimeDigitized` | UTC offset, e.g. `+05:30` |
-| `SubSecTime` / `SubSecTimeOriginal` / `SubSecTimeDigitized` | milliseconds |
-| `Make` / `Model` | the device, e.g. `LENOVO` / `TB305XU` |
-| `Orientation` | `1` — rotation is already in the pixels |
-| `Software` | the host app and build: `SarvaSarathi COS 2.17.6`, `(UAT)` / `(DEV)` outside production |
-| `ImageUniqueID` | this file's own id, a UUID v4 as 32 hex digits — also `metadata.imageId` |
-| `UserComment` | `fc_camera_kit` |
-| `ImageDescription` | the address, as stamped; `(MOCKED)` appended for a mock fix |
-| `GPSLatitude` / `GPSLongitude` (+ refs) | where |
-| `GPSProcessingMethod` | `MOCKED` for a mock fix; absent otherwise |
-| `GPSHPositioningError` | fix accuracy, in metres |
-| `GPSDateStamp` / `GPSTimeStamp` | when the fix was taken, UTC |
-| `GPSMapDatum` / `GPSVersionID` | `WGS-84` / `2.3.0.0` |
+The same facts as the stamp, written into the file last (after compression),
+so a backend can read them without OCR. Final format, with values from a
+sample capture:
+
+| Field | Group | Tag | Example | On stamp |
+|---|---|---|---|:---:|
+| App and build | IFD0 | `Software` | `FC Camera Kit Example 1.0.0 (DEV)` — production drops `(UAT)` / `(DEV)` | ✅ |
+| User | IFD0 | `Artist` | `Aman Gupta \| 222561 \| BRO \| Baramati` — `name \| id \| role \| branch`, empty parts left out | ✅ |
+| Capture time | Exif | `DateTimeOriginal` | `2026:10:15 18:33:57` — the shutter press | ✅ |
+| Digitized / modified | Exif / IFD0 | `DateTimeDigitized` / `DateTime` | `2026:10:15 18:33:57` — same moment | — |
+| Milliseconds | Exif | `SubSecTime` / `SubSecTimeOriginal` / `SubSecTimeDigitized` | `798` | — |
+| Time zone | Exif | `OffsetTime` / `OffsetTimeOriginal` / `OffsetTimeDigitized` | `+05:30` | — |
+| Address | IFD0 | `ImageDescription` | `Baner, Pune, Maharashtra, 411069, India` — `(MOCKED)` appended for a mock fix | ✅ |
+| Latitude | GPS | `GPSLatitude` + `GPSLatitudeRef` | `18, 33, 40.8834` + `N` (stored as degrees, minutes, seconds) | ✅ |
+| Longitude | GPS | `GPSLongitude` + `GPSLongitudeRef` | `73, 47, 7.62576` + `E` | ✅ |
+| Mock location | GPS | `GPSProcessingMethod` | `MOCKED` — absent for a real fix | ✅ |
+| GPS accuracy | GPS | `GPSHPositioningError` | `13.59` (metres) | — |
+| GPS fix time | GPS | `GPSDateStamp` + `GPSTimeStamp` | `2026:10:15` + `13, 3, 34` (UTC) | — |
+| GPS datum / version | GPS | `GPSMapDatum` / `GPSVersionID` | `WGS-84` / `2.3.0.0` | — |
+| Device | IFD0 | `Make` / `Model` | `Lenovo` / `TB328XU` | with `includeDeviceInStamp` |
+| Orientation | IFD0 | `Orientation` | `1` — rotation is already in the pixels | — |
+| Photo id | Exif | `ImageUniqueID` | `d7c3d479166c4ffba71888f03c7495df` — UUID v4, 32 hex digits, also `metadata.imageId` | — |
+| Written by | Exif | `UserComment` | `fc_camera_kit` (behind the `ASCII` charset header) | — |
+
+`ImageWidth` / `ImageHeight` (stamp strip included) and `LightSource` (`0`)
+come from the encoder, not the kit. Two sample captures, with every tag as
+stored, are in [doc/Smart_Camera_Photo_Details.xlsx](doc/Smart_Camera_Photo_Details.xlsx).
 
 Text that is not ASCII (e.g. a Devanagari address) is left out of EXIF
 rather than written as `?`; the stamp still shows it. Altitude is not
 written: the platforms report height above the ellipsoid, EXIF means sea
 level.
+
+### Face scan — `scanFace()`
+
+A selfie on the front camera with an offline liveness check (ML Kit, no
+network). The user fits their face in the oval and blinks; the ring turns
+green and the photo is taken by itself after `autoCaptureAfter` (1 s by
+default), or on the shutter.
+
+| Waiting for a blink | Blink seen, capturing |
+|:---:|:---:|
+| <img src="doc/images/face_scan_frame.png" alt="Face in a red oval with the hint Blink your eyes" width="260"> | <img src="doc/images/face_scan_with_sucess_sate.png" alt="Face in a green oval with the hint Hold still, taking your photo" width="260"> |
+
+- Hints guide the user: one face only, position in the oval, move closer or
+  back, look straight, too dark, blink, hold still.
+- `blinks` sets how many blinks are needed; `mirrorSelfie` saves the photo as
+  the user saw it in the preview.
+- EXIF is written as for `capture()`; the stamp is off by default
+  (`stamp: true` to turn it on), since an identity selfie is usually kept
+  clean.
+
+### Document scan — `scan()`
+
+Scans paper documents (Aadhaar, PAN, forms, receipts) with the platform's own
+scanner: ML Kit Document Scanner on Android, VisionKit on iOS, through
+`cunning_document_scanner`. The scanner screen is the platform's, so it looks
+native on each OS.
+
+```
+scan() ──▶ platform scanner ──▶ edge detection · auto / manual capture ──▶ crop · rotate · filters ──▶ compress ──▶ EXIF ──▶ pages
+```
+
+| Option | Default | What it does |
+|---|---|---|
+| `maxPages` | `1` | Pages per scan; more than 1 gives a multi-page document |
+| `source` | `FcScanSource.camera` | `camera`, `gallery` or `cameraAndGallery` |
+| `enhancement` | `FcScanEnhancement.full` | `basic` (crop, rotate), `filters` (grayscale, B&W, colour), `full` (adds shadow and stain removal on Android) |
+| `embedMetadata` | `true` | Writes the same EXIF as `capture()` into each page |
+| `stamp` | `false` | Burns the who / when / where stamp onto each page; documents are kept clean by default |
+| `maxMb` | from `init()` | Size limit per page |
+
+Set the defaults once with `init(scan: FcScanOptions(...))` and override any
+of them per call. The result is an `FcScanResult` with one `FcScannedPage` per
+page, in scan order: the `XFile`, its size, width, height and metadata.
+Design notes, including the live in-app scanner that is not built, are in
+[`lib/src/features/scanner/README.md`](lib/src/features/scanner/README.md).
 
 ---
 
@@ -140,7 +194,7 @@ level.
 dependencies:
   fc_camera_kit:
     git:
-      url: https://github.com/SarvagramHQ/fc_camera_kit.git
+      url: https://github.com/<org>/fc_camera_kit.git
       ref: v1.0.0 # a tag or commit SHA — never a branch
 ```
 
@@ -287,7 +341,7 @@ await FcCameraKit.instance.init(
   dateFormat: 'dd MMM yyyy, hh:mm a',
   includeDeviceInStamp: false,       // the device is always in EXIF
   app: FcApp(                        // required: EXIF Software and a stamp line
-    name: 'SarvaSarathi COS',
+    name: 'FC Camera Kit Example',
     version: packageInfo.version,    // from package_info_plus
     environment: FcEnvironment.production, // or uat / development
   ),
