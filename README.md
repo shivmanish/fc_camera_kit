@@ -88,6 +88,12 @@ Samsung | SM-A145                       (only with includeDeviceInStamp)
 SarvaSarathi COS                        (production; UAT: SarvaSarathi COS 2.17.6 (UAT))
 ```
 
+A photo from the in-app camera, stamped with `StampPlacement.extend`:
+
+<p align="center">
+  <img src="doc/images/stamp_example.png" alt="Photo with the who / when / where stamp below it" width="320">
+</p>
+
 A fix from a mock-location app is not refused: the location line ends in
 `(MOCKED)`, and EXIF and `metadata.location.isMocked` say so too.
 
@@ -514,6 +520,3 @@ House rules:
   in prose is noise — `public_member_api_docs` is deliberately off.
 - Public API changes land with a `CHANGELOG.md` entry.
 
-## Licence
-
-MIT — see [LICENSE](LICENSE).
